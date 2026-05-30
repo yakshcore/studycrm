@@ -1,0 +1,256 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════
+   DEFAULT — dark + indigo
+═══════════════════════════════════════════════════════════════ */
+:root {
+  --color-base:    #080d1b;
+  --color-surface: #0e1629;
+  --color-card:    #141e38;
+  --color-muted:   #1b2745;
+  --color-line:    #253255;
+  --color-t1:      #edf0ff;
+  --color-t2:      #7984ad;
+  --color-t3:      #3e4d70;
+  --color-accent:  #6366f1;
+  --background:    #080d1b;
+  --foreground:    #edf0ff;
+}
+
+:root.light {
+  --color-base:    #f0f2ff;
+  --color-surface: #ffffff;
+  --color-card:    #f8f9ff;
+  --color-muted:   #e8ebff;
+  --color-line:    #d4d8f8;
+  --color-t1:      #0c1040;
+  --color-t2:      #48567a;
+  --color-t3:      #8892b8;
+  --color-accent:  #4f46e5;
+  --background:    #f0f2ff;
+  --foreground:    #0c1040;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VIOLET
+═══════════════════════════════════════════════════════════════ */
+:root[data-palette="violet"] {
+  --color-base:    #09061c;
+  --color-surface: #0f0c2a;
+  --color-card:    #160f38;
+  --color-muted:   #1e1548;
+  --color-line:    #281e5e;
+  --color-t1:      #f0eeff;
+  --color-t2:      #8478b0;
+  --color-t3:      #483f70;
+  --color-accent:  #7c3aed;
+}
+:root.light[data-palette="violet"] {
+  --color-base:    #f4f1ff;
+  --color-surface: #ffffff;
+  --color-card:    #faf8ff;
+  --color-muted:   #ede8ff;
+  --color-line:    #d8d0ff;
+  --color-t1:      #1a0050;
+  --color-t2:      #50408a;
+  --color-t3:      #9880c8;
+  --color-accent:  #7c3aed;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMERALD
+═══════════════════════════════════════════════════════════════ */
+:root[data-palette="emerald"] {
+  --color-base:    #04100d;
+  --color-surface: #07181412;
+  --color-surface: #071814;
+  --color-card:    #0c2019;
+  --color-muted:   #102a22;
+  --color-line:    #18382d;
+  --color-t1:      #e8fdf5;
+  --color-t2:      #5da082;
+  --color-t3:      #2a5c45;
+  --color-accent:  #10b981;
+}
+:root.light[data-palette="emerald"] {
+  --color-base:    #ebfdf5;
+  --color-surface: #ffffff;
+  --color-card:    #f2fdf8;
+  --color-muted:   #d1fae5;
+  --color-line:    #a7f3d0;
+  --color-t1:      #064230;
+  --color-t2:      #065f46;
+  --color-t3:      #34d399;
+  --color-accent:  #059669;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ROSE
+═══════════════════════════════════════════════════════════════ */
+:root[data-palette="rose"] {
+  --color-base:    #140508;
+  --color-surface: #1e0a10;
+  --color-card:    #280f18;
+  --color-muted:   #341522;
+  --color-line:    #44202e;
+  --color-t1:      #fff1f3;
+  --color-t2:      #b07882;
+  --color-t3:      #6b3d48;
+  --color-accent:  #f43f5e;
+}
+:root.light[data-palette="rose"] {
+  --color-base:    #fff1f2;
+  --color-surface: #ffffff;
+  --color-card:    #fff8f9;
+  --color-muted:   #ffe4e8;
+  --color-line:    #fecdd3;
+  --color-t1:      #4a0517;
+  --color-t2:      #9f1239;
+  --color-t3:      #fb7185;
+  --color-accent:  #e11d48;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AMBER
+═══════════════════════════════════════════════════════════════ */
+:root[data-palette="amber"] {
+  --color-base:    #110900;
+  --color-surface: #1a1200;
+  --color-card:    #221800;
+  --color-muted:   #2d2100;
+  --color-line:    #3d2e00;
+  --color-t1:      #fff8e0;
+  --color-t2:      #a88550;
+  --color-t3:      #634e28;
+  --color-accent:  #f59e0b;
+}
+:root.light[data-palette="amber"] {
+  --color-base:    #fffbeb;
+  --color-surface: #ffffff;
+  --color-card:    #fffef5;
+  --color-muted:   #fef3c7;
+  --color-line:    #fde68a;
+  --color-t1:      #431a00;
+  --color-t2:      #92400e;
+  --color-t3:      #fbbf24;
+  --color-accent:  #d97706;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SKY
+═══════════════════════════════════════════════════════════════ */
+:root[data-palette="sky"] {
+  --color-base:    #03101e;
+  --color-surface: #07182e;
+  --color-card:    #0b1f3e;
+  --color-muted:   #10274e;
+  --color-line:    #183360;
+  --color-t1:      #dff3ff;
+  --color-t2:      #5598be;
+  --color-t3:      #29547a;
+  --color-accent:  #0ea5e9;
+}
+:root.light[data-palette="sky"] {
+  --color-base:    #eff8ff;
+  --color-surface: #ffffff;
+  --color-card:    #f5fbff;
+  --color-muted:   #e0f2fe;
+  --color-line:    #bae6fd;
+  --color-t1:      #082f49;
+  --color-t2:      #0369a1;
+  --color-t3:      #38bdf8;
+  --color-accent:  #0284c7;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAILWIND MAPPING
+═══════════════════════════════════════════════════════════════ */
+@theme inline {
+  --color-base:    var(--color-base);
+  --color-surface: var(--color-surface);
+  --color-card:    var(--color-card);
+  --color-muted:   var(--color-muted);
+  --color-line:    var(--color-line);
+  --color-t1:      var(--color-t1);
+  --color-t2:      var(--color-t2);
+  --color-t3:      var(--color-t3);
+  --color-accent:  var(--color-accent);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BASE STYLES
+═══════════════════════════════════════════════════════════════ */
+html { color-scheme: dark; }
+html.light { color-scheme: light; }
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Thin, elegant scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-line); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-t3); }
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════════════════════ */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+.animate-toast-in { animation: toast-in 0.22s cubic-bezier(.34,1.56,.64,1) both; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 0.25s ease-out both; }
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-right { animation: slide-in-right 0.22s cubic-bezier(.34,1.56,.64,1) both; }
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.90); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in { animation: scale-in 0.2s cubic-bezier(.34,1.56,.64,1) both; }
+
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.7) translateY(4px); }
+  70%  { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-pop-in { animation: pop-in 0.25s cubic-bezier(.34,1.56,.64,1) both; }
+
+/* Chat typing indicator */
+@keyframes typing-dot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1); opacity: 1; }
+}
+.typing-dot { animation: typing-dot 1.2s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ═══════════════════════════════════════════════════════════════
+   GLASS / GLOW HELPERS
+═══════════════════════════════════════════════════════════════ */
+.glass {
+  background: color-mix(in oklch, var(--color-surface) 70%, transparent);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+}
+
+.glow-accent {
+  box-shadow: 0 0 24px color-mix(in oklch, var(--color-accent) 30%, transparent);
+}
+
+/* Sidebar active nav glow */
+.nav-active-glow {
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}

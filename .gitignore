@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+backend/dist/
+crm/.next/
+student/.next/
+
+# Environment files
+backend/.env
+crm/.env.local
+student/.env.local
+**/.env
+**/.env.local
+**/.env*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Next.js
+**/out/
+**/.next/
+
+# TypeScript
+*.tsbuildinfo
+
+# Package manager locks (keep only one — uncomment if you want to ignore)
+# package-lock.json
+# yarn.lock
