@@ -1,4 +1,4 @@
-# StudyCRM
+# StudyCRM for Visa Company
 
 A full-stack Study Abroad CRM system built with:
 - **Backend**: Node.js + Express + MongoDB + Socket.io
