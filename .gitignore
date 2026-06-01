@@ -11,9 +11,11 @@ student/.next/
 backend/.env
 crm/.env.local
 student/.env.local
+student/.env.live
 **/.env
 **/.env.local
-**/.env*.local
+**/.env.live
+
 
 # Logs
 *.log
