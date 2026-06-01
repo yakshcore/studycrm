@@ -26,8 +26,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: [
-      process.env.CLIENT_CRM_URL || "http://localhost:3000",
-      process.env.CLIENT_STUDENT_URL as string,
+      process.env.CLIENT_CRM_URL || "",
+      process.env.CLIENT_STUDENT_URL || "",
     ],
     credentials: true,
   },
@@ -37,8 +37,8 @@ const io = new Server(server, {
 app.use(
   cors({
     origin: [
-      process.env.CLIENT_CRM_URL || "http://localhost:3000",
-      process.env.CLIENT_STUDENT_URL || "http://localhost:3001",
+      process.env.CLIENT_CRM_URL || "",
+      process.env.CLIENT_STUDENT_URL || "",
     ],
     credentials: true,
   }),
