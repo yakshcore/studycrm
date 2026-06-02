@@ -1,329 +1,177 @@
-# StudyCRM for Visa Company
+# StudyCRM
 
-A full-stack Study Abroad CRM system built with:
-- **Backend**: Node.js + Express + MongoDB + Socket.io
-- **CRM**: Next.js 16 internal CRM with RBAC (port 3000)
-- **Student Portal**: Next.js 16 PWA for students (port 3001)
+A full-stack study-abroad management platform for counselling agencies. Manages the complete student lifecycle — from lead capture through visa approval — with a staff CRM and a student self-service portal.
 
 ---
 
-## Architecture
+## What It Does
 
-```
-studycrm/
-  backend/         Node.js + Express + MongoDB + Socket.io API
-    src/
-      config/      db.ts
-      middleware/  auth.ts (JWT authenticate + authorize)
-      models/      User, Lead, Student, Document, Application, Visa, Payment,
-                   Notification, ActivityLog, Conversation, Message
-      routes/      auth, users, leads, students, documents, applications,
-                   visas, payments, messages, notifications, dashboard
-      socket/      Socket.io setup
-    uploads/       Uploaded document files (auto-created)
+**For staff** (CRM dashboard):
+- Track leads through a Kanban sales pipeline
+- Manage student records across a 10-stage journey (inquiry → departure)
+- Review and approve uploaded documents
+- Manage university applications, visa cases, and payments
+- Real-time chat with students and live notifications
 
-  crm/             Next.js 16 CRM app (port 3000)
-    src/
-      app/
-        (crm)/     Route group — all pages wrapped in AppShell
-          dashboard/
-          leads/
-          students/[id]/   (includes "Create Portal Account" panel)
-          applications/
-          visa/
-          documents/
-          finance/
-          reports/
-          settings/
-        login/
-      components/  AppShell, StageTracker, LeadKanban, StatCard, Skeleton
-      context/     ToastContext, ThemeContext
-      lib/         api.ts (Axios + crm_token)
-      stores/      authStore.ts (Zustand)
-      types/       index.ts
-
-  student/         Next.js 16 Student Portal PWA (port 3001)
-    src/
-      app/
-        (portal)/  Route group — all pages wrapped in AppShell
-          home/        Dashboard — counsellor, pending docs, journey progress
-          progress/    Full 10-stage tracker + profile summary + test scores
-          documents/   Upload documents, track approval status
-          applications/ View university applications
-          payments/    Payment history + pending amounts
-          chat/        Real-time DM with assigned counsellor
-          notifications/ Push-style notification list
-          profile/     Edit personal info, education, preferences, password
-        login/
-      components/  AppShell (bottom nav on mobile), StageTracker, Skeleton
-      context/     ToastContext, ThemeContext
-      lib/         api.ts (Axios + student_token)
-      stores/      authStore.ts (Zustand — stores studentId)
-      types/       index.ts
-```
+**For students** (self-service portal):
+- Track their own progress through the journey
+- Upload required documents and monitor approval status
+- View university applications, offer letters, and payment dues
+- Chat directly with their assigned counsellor
 
 ---
 
-## Setup
+## Services
+
+| Service | Port | Stack |
+|---------|------|-------|
+| Backend API | 5000 | Node.js · Express · TypeScript · MongoDB · Socket.IO |
+| CRM Dashboard | 3000 | Next.js 16 · React 19 · Zustand · Tailwind CSS v4 |
+| Student Portal | 3001 | Next.js 16 · React 19 · Zustand · Tailwind CSS v4 (PWA) |
+
+---
+
+## Quick Start
+
+Each service runs independently in its own terminal.
 
 ### 1. Backend
 
 ```bash
-cd studycrm/backend
-cp .env.example .env         # Fill in your values
+cd backend
+cp .env.example .env        # fill in JWT_SECRET and MONGODB_URI
 npm install
-npm run dev                  # Starts on port 5000
+npm run dev                 # starts on port 5000
 ```
 
-To seed the first super_admin user, POST to:
-```
-POST http://localhost:5000/api/auth/register
-{ "name": "Admin", "email": "admin@example.com", "password": "password123", "role": "super_admin" }
+Seed an initial super_admin:
+```bash
+npm run seed
 ```
 
-### 2. CRM Frontend
+### 2. CRM Dashboard
 
 ```bash
-cd studycrm/crm
+cd crm
 cp .env.local.example .env.local
 npm install
-npm run dev                  # Starts on port 3000
+npm run dev                 # starts on port 3000
 ```
 
 ### 3. Student Portal
 
 ```bash
-cd studycrm/student
+cd student
 cp .env.local.example .env.local
 npm install
-npm run dev                  # Starts on port 3001
+npm run dev                 # starts on port 3001
 ```
-
----
-
-## Onboarding a Student
-
-1. **Create the student record** in the CRM: `Students → + New Student`
-2. **Open the student's profile** (`Students → [name]`)
-3. **Create portal account** using the "Student Portal" card in the right sidebar — enter the student's email + a temporary password
-4. Share the Student Portal URL (`http://localhost:3001`) with the student
-5. The student logs in and can track their journey, upload documents, and chat with their counsellor
 
 ---
 
 ## Environment Variables
 
-### Backend (.env)
+### backend/.env
 
-| Variable            | Default                              | Description                  |
-|---------------------|--------------------------------------|------------------------------|
-| PORT                | 5000                                 | Server port                  |
-| MONGODB_URI         | mongodb://localhost:27017/studycrm   | MongoDB connection string     |
-| JWT_SECRET          | —                                    | JWT signing secret (required) |
-| JWT_EXPIRES_IN      | 7d                                   | JWT expiry                   |
-| CLIENT_CRM_URL      | http://localhost:3000                | CRM frontend origin (CORS)   |
-| CLIENT_STUDENT_URL  | http://localhost:3001                | Student portal origin (CORS) |
+| Variable | Description |
+|----------|-------------|
+| `PORT` | Server port (default: 5000) |
+| `MONGODB_URI` | MongoDB connection string |
+| `JWT_SECRET` | JWT signing secret |
+| `JWT_EXPIRES_IN` | Token expiry (default: 7d) |
+| `CLIENT_CRM_URL` | CRM origin for CORS (default: http://localhost:3000) |
+| `CLIENT_STUDENT_URL` | Student portal origin for CORS (default: http://localhost:3001) |
 
-### CRM Frontend (.env.local)
+### crm/.env.local and student/.env.local
 
-| Variable                | Default                      | Description           |
-|-------------------------|------------------------------|-----------------------|
-| NEXT_PUBLIC_API_URL     | http://localhost:5000/api    | Backend API base URL  |
-| NEXT_PUBLIC_SOCKET_URL  | http://localhost:5000        | Socket.io server URL  |
-
----
-
-## API Endpoints Reference
-
-### Auth
-| Method | Endpoint                      | Description                     | Auth |
-|--------|-------------------------------|---------------------------------|------|
-| POST   | /api/auth/login               | Login, returns JWT + studentId  | No   |
-| GET    | /api/auth/me                  | Get current user                | Yes  |
-| POST   | /api/auth/register            | Register user (seeding)         | No   |
-| POST   | /api/auth/change-password     | Change own password             | Yes  |
-
-### Users
-| Method | Endpoint                       | Description                          | Auth                           |
-|--------|--------------------------------|--------------------------------------|--------------------------------|
-| GET    | /api/users                     | List all users                       | super_admin, admin, manager    |
-| GET    | /api/users/counsellors         | List counsellors only                | All                            |
-| POST   | /api/users                     | Create user                          | super_admin, admin             |
-| POST   | /api/users/student-account     | Create portal account for student    | super_admin, admin, manager    |
-| PUT    | /api/users/:id                 | Update user                          | Authenticated                  |
-
-### Leads
-| Method | Endpoint         | Description       | Auth          |
-|--------|------------------|-------------------|---------------|
-| GET    | /api/leads       | List leads        | Authenticated |
-| POST   | /api/leads       | Create lead       | Authenticated |
-| GET    | /api/leads/:id   | Get lead          | Authenticated |
-| PUT    | /api/leads/:id   | Update lead       | Authenticated |
-| DELETE | /api/leads/:id   | Delete lead       | Authenticated |
-
-Query params: `?status=new&assignedTo=<userId>`
-
-### Students
-| Method | Endpoint            | Description                             | Auth          |
-|--------|---------------------|-----------------------------------------|---------------|
-| GET    | /api/students       | List students (role-filtered)           | Authenticated |
-| POST   | /api/students       | Create student                          | Authenticated |
-| GET    | /api/students/:id   | Get student                             | Authenticated |
-| PUT    | /api/students/:id   | Update student (full)                   | Authenticated |
-| PATCH  | /api/students/:id   | Update student (partial, student portal)| Authenticated |
-| DELETE | /api/students/:id   | Delete student                          | Authenticated |
-
-Query params: `?stage=inquiry`  
-Note: `student` role users can only see their own record.
-
-### Documents
-| Method | Endpoint                    | Description            | Auth               |
-|--------|-----------------------------|------------------------|--------------------|
-| GET    | /api/documents              | List documents         | Authenticated      |
-| POST   | /api/documents              | Create document        | Authenticated      |
-| POST   | /api/documents/upload       | Multipart file upload  | Authenticated      |
-| GET    | /api/documents/:id          | Get document           | Authenticated      |
-| PUT    | /api/documents/:id          | Update document        | Authenticated      |
-| PUT    | /api/documents/:id/status   | Approve/Reject doc     | doc_verification+  |
-| DELETE | /api/documents/:id          | Delete document        | Authenticated      |
-
-Query params: `?studentId=<id>&status=uploaded&type=passport`  
-Files served at: `/uploads/<filename>`
-
-### Applications
-| Method | Endpoint                | Description          | Auth          |
-|--------|-------------------------|----------------------|---------------|
-| GET    | /api/applications       | List applications    | Authenticated |
-| POST   | /api/applications       | Create application   | Authenticated |
-| GET    | /api/applications/:id   | Get application      | Authenticated |
-| PUT    | /api/applications/:id   | Update application   | Authenticated |
-| DELETE | /api/applications/:id   | Delete application   | Authenticated |
-
-Query params: `?studentId=<id>&status=submitted`
-
-### Visas
-| Method | Endpoint         | Description     | Auth          |
-|--------|------------------|-----------------|---------------|
-| GET    | /api/visas       | List visas      | Authenticated |
-| POST   | /api/visas       | Create visa     | Authenticated |
-| GET    | /api/visas/:id   | Get visa        | Authenticated |
-| PUT    | /api/visas/:id   | Update visa     | Authenticated |
-| DELETE | /api/visas/:id   | Delete visa     | Authenticated |
-
-### Payments
-| Method | Endpoint            | Description      | Auth          |
-|--------|---------------------|------------------|---------------|
-| GET    | /api/payments       | List payments    | Authenticated |
-| POST   | /api/payments       | Create payment   | Authenticated |
-| GET    | /api/payments/:id   | Get payment      | Authenticated |
-| PUT    | /api/payments/:id   | Update payment   | Authenticated |
-| DELETE | /api/payments/:id   | Delete payment   | Authenticated |
-
-### Notifications
-| Method | Endpoint                       | Description               | Auth          |
-|--------|--------------------------------|---------------------------|---------------|
-| GET    | /api/notifications             | Get user notifications    | Authenticated |
-| POST   | /api/notifications             | Create notification       | Authenticated |
-| PUT    | /api/notifications/read-all    | Mark all as read          | Authenticated |
-| PUT    | /api/notifications/:id/read    | Mark one as read          | Authenticated |
-| DELETE | /api/notifications/:id         | Delete notification       | Authenticated |
-
-### Notifications
-| Method | Endpoint                           | Description               | Auth          |
-|--------|------------------------------------|---------------------------|---------------|
-| GET    | /api/notifications                 | Get user notifications    | Authenticated |
-| POST   | /api/notifications                 | Create notification       | Authenticated |
-| PUT    | /api/notifications/read-all        | Mark all as read (CRM)    | Authenticated |
-| PATCH  | /api/notifications/read-all        | Mark all as read (portal) | Authenticated |
-| PUT    | /api/notifications/:id/read        | Mark one as read (CRM)    | Authenticated |
-| PATCH  | /api/notifications/:id/read        | Mark one as read (portal) | Authenticated |
-| DELETE | /api/notifications/:id             | Delete notification       | Authenticated |
-
-Query params: `?limit=20`
-
-### Messages
-| Method | Endpoint                               | Description                        | Auth          |
-|--------|----------------------------------------|------------------------------------|---------------|
-| GET    | /api/messages/conversations            | List conversations                 | Authenticated |
-| POST   | /api/messages/conversations            | Create conversation                | Authenticated |
-| POST   | /api/messages/conversation             | Find or create 1-on-1 conversation | Authenticated |
-| POST   | /api/messages/send                     | Send message (body + conversationId)| Authenticated |
-| GET    | /api/messages/:conversationId          | Get messages                       | Authenticated |
-| POST   | /api/messages/:conversationId          | Send message (legacy)              | Authenticated |
-
-### Dashboard
-| Method | Endpoint                  | Description        | Auth          |
-|--------|---------------------------|--------------------|---------------|
-| GET    | /api/dashboard/stats      | Pipeline stats     | Authenticated |
-| GET    | /api/dashboard/reports    | Monthly reports    | Authenticated |
-
-### Health
-| Method | Endpoint      | Description  | Auth |
-|--------|---------------|--------------|------|
-| GET    | /api/health   | Health check | No   |
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | Backend API base URL (default: http://localhost:5000/api) |
+| `NEXT_PUBLIC_SOCKET_URL` | Socket.IO server URL (default: http://localhost:5000) |
 
 ---
 
-## Role Permissions Matrix
+## Student Journey (10 Stages)
 
-| Feature                | super_admin | admin | counsellor_manager | counsellor | finance | accountant | visa_team | doc_verification | university_team | support |
-|------------------------|:-----------:|:-----:|:------------------:|:----------:|:-------:|:----------:|:---------:|:----------------:|:---------------:|:-------:|
-| Dashboard              | Yes         | Yes   | Yes                | Yes        | Yes     | Yes        | Yes       | Yes              | Yes             | Yes     |
-| Leads (view/create)    | Yes         | Yes   | Yes                | Yes        | Yes     | Yes        | No        | No               | Yes             | Yes     |
-| Students               | Yes         | Yes   | Yes                | Yes        | Yes     | Yes        | Yes       | Yes              | Yes             | Yes     |
-| Applications           | Yes         | Yes   | Yes                | Yes        | No      | No         | No        | No               | Yes             | No      |
-| Visa Tracker           | Yes         | Yes   | Yes                | Yes        | No      | No         | Yes       | No               | No              | No      |
-| Documents              | Yes         | Yes   | Yes                | Yes        | No      | No         | No        | Yes              | No              | No      |
-| Doc Approve/Reject     | Yes         | Yes   | No                 | No         | No      | No         | No        | Yes              | No              | No      |
-| Finance                | Yes         | Yes   | No                 | No         | Yes     | Yes        | No        | No               | No              | No      |
-| Reports                | Yes         | Yes   | Yes                | No         | No      | No         | No        | No               | No              | No      |
-| Settings               | Yes         | Yes   | No                 | No         | No      | No         | No        | No               | No              | No      |
-| Create Users           | Yes         | Yes   | No                 | No         | No      | No         | No        | No               | No              | No      |
+```
+Inquiry → Counselling → University Selection → Application Submitted
+  → Offer Letter → Fee Payment → CAS/I-20 → Visa Filing
+  → Visa Approved → Departure
+```
+
+Application status runs on a separate track: `drafting → submitted → offer received → conditional offer → accepted | rejected | withdrawn | deferred`
+
+---
+
+## Role-Based Access Control
+
+11 staff roles with route-level enforcement:
+
+`super_admin` · `admin` · `counsellor_manager` · `counsellor` · `finance` · `accountant` · `visa_team` · `doc_verification` · `university_team` · `support` · `student`
+
+| Capability | Roles |
+|-----------|-------|
+| Full system access | super_admin, admin |
+| Lead & student management | counsellor_manager, counsellor |
+| Document approval | doc_verification |
+| Visa tracking | visa_team |
+| Finance & payments | finance, accountant |
+| Reports | super_admin, admin, counsellor_manager |
+| Student (own data only) | student |
+
+---
+
+## API Overview
+
+Base URL: `http://localhost:5000/api`
+
+| Resource | Endpoints |
+|----------|-----------|
+| Auth | `POST /auth/login`, `GET /auth/me`, `POST /auth/register-student` |
+| Users | `GET/POST /users`, `PUT /users/:id`, `POST /users/student-account` |
+| Leads | `GET/POST /leads`, `GET/PUT/DELETE /leads/:id` |
+| Students | `GET/POST /students`, `GET/PUT/PATCH/DELETE /students/:id` |
+| Documents | `GET/POST /documents`, `POST /documents/upload`, `PUT /documents/:id/status` |
+| Applications | `GET/POST /applications`, `GET/PUT/DELETE /applications/:id` |
+| Visas | `GET/POST /visas`, `GET/PUT/DELETE /visas/:id` |
+| Payments | `GET/POST /payments`, `GET/PUT/DELETE /payments/:id` |
+| Messages | `GET/POST /messages/conversations`, `POST /messages/send`, `GET /messages/:conversationId` |
+| Notifications | `GET/POST /notifications`, `PUT /notifications/read-all`, `PUT /notifications/:id/read` |
+| Dashboard | `GET /dashboard/stats`, `GET /dashboard/reports` |
+
+Uploaded files served at `/uploads/<filename>`.
 
 ---
 
 ## Key Features
 
-### CRM
-- **Lead Pipeline**: Kanban board with drag-and-drop status updates across 7 stages
-- **Student 360 Profile**: Tabbed profile with stage tracker, applications, documents, visa, payments, and notes
-- **Stage Tracker**: Visual vertical pipeline from Inquiry to Departure (10 stages, clickable to advance)
-- **Document Workflow**: Upload, review, approve/reject with versioning support
-- **Visa Tracker**: Stage-by-stage visa progress with date milestones
-- **Finance Module**: Payment recording, mark-as-paid, receipt links
-- **Reports**: Monthly KPIs, student pipeline and lead funnel charts
-- **RBAC**: Role-based access control on every API route and UI nav item
-- **Create Portal Account**: CRM counsellors can issue student portal login credentials from the student profile page
+### CRM Dashboard
+- Lead Kanban board with 7 status columns
+- Student 360 profile: stage tracker, applications, documents, visa, payments, notes
+- Document review queue with approve/reject and rejection reason
+- Visa stage progression tracker
+- Finance module: payment recording, mark-paid, receipt links
+- Monthly KPI reports and lead funnel analytics
+- Issue student portal credentials from the student profile
 
 ### Student Portal
-- **Journey Dashboard**: Home screen with stage progress bar, counsellor card, pending docs and payments at a glance
-- **10-Stage Tracker**: Visual pipeline with stage-specific tips and profile summary
-- **Document Upload**: Multipart file upload with real-time status tracking (uploaded → under review → approved/rejected)
-- **Applications**: View all university applications with offer dates, deadlines and tuition fees
-- **Payments**: Payment history with overdue detection, receipt downloads, total paid/pending summary
-- **Real-time Chat**: Direct message with assigned counsellor via Socket.io, typing indicators, read receipts
-- **Notifications**: In-app notification list with mark-as-read
-- **Profile Management**: Edit personal info, education, preferences and change password across 4-tab form
-- **PWA**: Installable (manifest.ts), works on mobile with bottom nav, landscape-blue theme
+- Home dashboard with counsellor card, pending actions summary
+- 10-stage visual journey tracker with stage-specific guidance
+- Multipart document upload with approval status tracking
+- University applications with offer dates and tuition details
+- Payment history with overdue detection
+- Real-time chat with assigned counsellor (typing indicators, read receipts)
+- PWA — installable on mobile, bottom navigation
 
-### Shared
-- **Real-time**: Socket.io for messaging and typing indicators
-- **Dark/Light Theme**: Tailwind v4 CSS variable theming with localStorage persistence
-- **Toast Notifications**: Animated success/error/info toasts
-- **Optimistic UI**: Instant feedback with server sync
+### Platform-wide
+- Socket.IO real-time messaging and notifications
+- Dark / light theme with localStorage persistence
+- JWT auth with automatic token refresh redirect
+- Toast notification system
 
 ---
 
-## Tech Stack
+## Project Docs
 
-| Layer       | Tech                                          |
-|-------------|-----------------------------------------------|
-| Backend API | Node.js, Express 4, TypeScript                |
-| Database    | MongoDB with Mongoose 8                       |
-| Auth        | JWT (jsonwebtoken), bcryptjs                  |
-| Real-time   | Socket.io 4                                   |
-| CRM App     | Next.js 16, React 19, TypeScript              |
-| Styling     | Tailwind CSS v4 with @tailwindcss/postcss     |
-| State       | Zustand 4 (auth store)                        |
-| HTTP Client | Axios 1.7                                     |
-| Fonts       | Geist (Google Fonts via next/font)            |
+- [`context.md`](./context.md) — Deep technical reference: models, routes, auth flow, socket events, design tokens
+- [`summary.md`](./summary.md) — One-page high-level overview
