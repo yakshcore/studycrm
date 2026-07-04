@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useTheme } from '@/context/ThemeContext';
+import { useToast } from '@/context/ToastContext';
 import api from '@/lib/api';
 import { io, Socket } from 'socket.io-client';
 import type { Notification } from '@/types';
@@ -91,6 +92,7 @@ export function AppShell({ children, title }: Props) {
   const router   = useRouter();
   const { user, clearAuth } = useAuthStore();
   const { theme, toggle }   = useTheme();
+  const { toast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [unreadCount, setUnreadCount] = useState(0);
@@ -107,9 +109,12 @@ export function AppShell({ children, title }: Props) {
     const token = localStorage.getItem('student_token');
     const socket = io(SOCKET_URL, { auth: { token } });
     socketRef.current = socket;
-    socket.on('notification', () => setUnreadCount(c => c + 1));
+    socket.on('notification', (n: { title?: string }) => {
+      setUnreadCount(c => c + 1);
+      toast(n?.title ? `New: ${n.title}` : 'You have a new notification', 'info');
+    });
     return () => { socket.disconnect(); };
-  }, [user]);
+  }, [user, toast]);
 
   useEffect(() => {
     const token = localStorage.getItem('student_token');

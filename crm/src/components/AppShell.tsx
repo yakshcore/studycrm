@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
+import { useToast } from '@/context/ToastContext';
 import api from '@/lib/api';
 import { io, Socket } from 'socket.io-client';
 import type { UserRole, Notification } from '@/types';
@@ -158,13 +159,12 @@ export function AppShell({ children }: Props) {
   const pathname = usePathname();
   const router   = useRouter();
   const { user, clearAuth } = useAuthStore();
+  const { toast } = useToast();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // ── Notifications ─────────────────────────────────────────────────────────
   const [notifications,   setNotifications]   = useState<Notification[]>([]);
-  const [notifOpen,       setNotifOpen]       = useState(false);
   const socketRef = useRef<Socket | null>(null);
-  const notifPanelRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -173,13 +173,13 @@ export function AppShell({ children }: Props) {
     if (!token) router.push('/login');
   }, [router]);
 
-  // Fetch recent notifications once
+  // Fetch notifications — re-runs on page navigation to keep badge in sync
   useEffect(() => {
     if (!user) return;
-    api.get<Notification[]>('/notifications?limit=20')
+    api.get<Notification[]>('/notifications?limit=100')
       .then(r => setNotifications(r.data))
       .catch(() => {});
-  }, [user]);
+  }, [user, pathname]);
 
   // Connect socket to receive real-time notifications
   useEffect(() => {
@@ -189,35 +189,11 @@ export function AppShell({ children }: Props) {
     socketRef.current = socket;
     socket.on('notification', (n: Notification) => {
       setNotifications(prev => [n, ...prev].slice(0, 20));
+      toast(`New notification: ${n.title}`, 'info');
     });
     return () => { socket.disconnect(); };
-  }, [user]);
+  }, [user, toast]);
 
-  // Close notification panel on outside click
-  useEffect(() => {
-    if (!notifOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (notifPanelRef.current && !notifPanelRef.current.contains(e.target as Node)) {
-        setNotifOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [notifOpen]);
-
-  const markAllRead = async () => {
-    try {
-      await api.put('/notifications/read-all');
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    } catch { /* ignore */ }
-  };
-
-  const markOneRead = async (id: string) => {
-    try {
-      await api.put(`/notifications/${id}/read`);
-      setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
-    } catch { /* ignore */ }
-  };
   // ──────────────────────────────────────────────────────────────────────────
 
   const handleSignOut = () => {
@@ -270,58 +246,30 @@ export function AppShell({ children }: Props) {
       {/* Bottom section */}
       <div className="px-3 py-4 border-t border-line space-y-2">
         {/* Notification bell */}
-        <div className="relative" ref={notifPanelRef}>
-          <button
-            onClick={() => setNotifOpen(o => !o)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-t2 hover:text-t1 hover:bg-muted transition-all"
-          >
-            <div className="relative flex-shrink-0">
-              <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-t3">
-                <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
-              </svg>
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent text-white text-[9px] font-bold flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </div>
-            <span>Notifications</span>
+        <Link
+          href="/notifications"
+          onClick={() => setMobileOpen(false)}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+            pathname.startsWith('/notifications')
+              ? 'bg-accent/15 text-accent'
+              : 'text-t2 hover:text-t1 hover:bg-muted'
+          }`}
+        >
+          <div className="relative flex-shrink-0">
+            <svg viewBox="0 0 20 20" fill="currentColor" className={`w-5 h-5 ${pathname.startsWith('/notifications') ? 'text-accent' : 'text-t3'}`}>
+              <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
+            </svg>
             {unreadCount > 0 && (
-              <span className="ml-auto text-xs bg-accent/15 text-accent px-1.5 py-0.5 rounded-full font-medium">{unreadCount}</span>
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent text-white text-[9px] font-bold flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
             )}
-          </button>
-
-          {notifOpen && (
-            <div className="absolute bottom-full left-0 right-0 mb-1 bg-card border border-line rounded-2xl shadow-2xl z-50 max-h-96 flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-line flex-shrink-0">
-                <p className="text-xs font-semibold text-t1">Notifications</p>
-                {unreadCount > 0 && (
-                  <button onClick={markAllRead} className="text-xs text-accent hover:underline">Mark all read</button>
-                )}
-              </div>
-              <div className="overflow-y-auto flex-1">
-                {notifications.length === 0 ? (
-                  <p className="text-xs text-t3 text-center py-6">No notifications yet</p>
-                ) : (
-                  notifications.map(n => (
-                    <button
-                      key={n._id}
-                      onClick={() => { markOneRead(n._id); if (n.link) router.push(n.link); setNotifOpen(false); }}
-                      className={`w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-muted transition-colors border-b border-line last:border-0 ${!n.read ? 'bg-accent/5' : ''}`}
-                    >
-                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${n.read ? 'bg-transparent' : 'bg-accent'}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-semibold truncate ${n.read ? 'text-t2' : 'text-t1'}`}>{n.title}</p>
-                        <p className="text-xs text-t3 mt-0.5 line-clamp-2">{n.body}</p>
-                        <p className="text-xs text-t3 mt-0.5">{new Date(n.createdAt).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}</p>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
+          </div>
+          <span>Notifications</span>
+          {unreadCount > 0 && (
+            <span className="ml-auto text-xs bg-accent/15 text-accent px-1.5 py-0.5 rounded-full font-medium">{unreadCount}</span>
           )}
-        </div>
+        </Link>
 
         {/* User info */}
         {user && (
