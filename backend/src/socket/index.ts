@@ -2,6 +2,13 @@ import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { setIo } from './emitter';
 
+/** userId → live socket ids (a user can have several tabs open) */
+const onlineUsers = new Map<string, Set<string>>();
+
+export function isUserOnline(userId: string): boolean {
+  return (onlineUsers.get(userId)?.size ?? 0) > 0;
+}
+
 export function setupSocket(io: Server) {
   // Register io so routes can emit events without circular imports
   setIo(io);
@@ -10,13 +17,29 @@ export function setupSocket(io: Server) {
     console.log(`Socket connected: ${socket.id}`);
 
     // Auto-join user's personal notification room so we can push notifications in real-time
+    let userId: string | null = null;
     const token = socket.handshake.auth?.token as string | undefined;
     if (token) {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { id: string };
-        socket.join(`user:${decoded.id}`);
+        userId = decoded.id;
+        socket.join(`user:${userId}`);
+
+        // Presence: track and broadcast
+        const sockets = onlineUsers.get(userId) ?? new Set<string>();
+        const wasOffline = sockets.size === 0;
+        sockets.add(socket.id);
+        onlineUsers.set(userId, sockets);
+        if (wasOffline) io.emit('presence', { userId, online: true });
       } catch { /* invalid / expired token — no personal room */ }
     }
+
+    // Client asks who's online (e.g. when opening the chat page)
+    socket.on('get_presence', (ack?: (online: string[]) => void) => {
+      const online = [...onlineUsers.keys()];
+      if (typeof ack === 'function') ack(online);
+      else socket.emit('presence_list', online);
+    });
 
     socket.on('join_room', (roomId: string) => {
       socket.join(roomId);
@@ -38,6 +61,16 @@ export function setupSocket(io: Server) {
 
     socket.on('disconnect', () => {
       console.log(`Socket disconnected: ${socket.id}`);
+      if (userId) {
+        const sockets = onlineUsers.get(userId);
+        if (sockets) {
+          sockets.delete(socket.id);
+          if (sockets.size === 0) {
+            onlineUsers.delete(userId);
+            io.emit('presence', { userId, online: false });
+          }
+        }
+      }
     });
   });
 }

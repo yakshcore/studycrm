@@ -6,7 +6,7 @@ import { DocCardSkeleton } from '@/components/Skeleton';
 import { useAuthStore } from '@/stores/authStore';
 import { useToast } from '@/context/ToastContext';
 import api from '@/lib/api';
-import type { Document, DocType } from '@/types';
+import type { Document, DocType, DocumentRequest } from '@/types';
 
 const DOC_LABELS: Record<DocType, string> = {
   passport:       'Passport',
@@ -43,17 +43,23 @@ export default function DocumentsPage() {
   const { studentId } = useAuthStore();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const reqFileRef   = useRef<HTMLInputElement>(null);
   const [documents, setDocuments]  = useState<Document[]>([]);
+  const [requests, setRequests]    = useState<DocumentRequest[]>([]);
   const [loading, setLoading]      = useState(true);
   const [uploading, setUploading]  = useState(false);
   const [uploadFor, setUploadFor]  = useState<DocType>('passport');
   const [filter, setFilter]        = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
   const [showUploadPanel, setShowUploadPanel] = useState(false);
+  const [uploadingReq, setUploadingReq] = useState<DocumentRequest | null>(null);
 
   function loadDocuments() {
     if (!studentId) return;
-    api.get<Document[]>(`/documents?studentId=${studentId}`)
-      .then(res => setDocuments(res.data))
+    Promise.all([
+      api.get<Document[]>(`/documents?studentId=${studentId}`),
+      api.get<DocumentRequest[]>(`/documents/requests?studentId=${studentId}&status=pending`),
+    ])
+      .then(([docsRes, reqRes]) => { setDocuments(docsRes.data); setRequests(reqRes.data); })
       .catch(() => toast('Failed to load documents', 'error'))
       .finally(() => setLoading(false));
   }
@@ -80,6 +86,33 @@ export default function DocumentsPage() {
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  /* Upload against a counsellor's pending request */
+  async function handleRequestUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    const req  = uploadingReq;
+    if (!file || !studentId || !req) return;
+    setUploading(true);
+    const form = new FormData();
+    form.append('file', file);
+    form.append('studentId', studentId);
+    form.append('type', req.type);
+    if (req.label) form.append('label', req.label);
+    form.append('requestId', req._id);
+    try {
+      await api.post('/documents/upload', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      toast('Document uploaded!');
+      loadDocuments();
+    } catch {
+      toast('Upload failed', 'error');
+    } finally {
+      setUploading(false);
+      setUploadingReq(null);
+      if (reqFileRef.current) reqFileRef.current.value = '';
     }
   }
 
@@ -127,6 +160,43 @@ export default function DocumentsPage() {
                 <p className="text-xs text-t3 mt-0.5 font-semibold uppercase tracking-wider">{s.label}</p>
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Pending requests from counsellor */}
+        {!loading && requests.length > 0 && (
+          <div className="glass-card border border-amber-500/30 rounded-2xl p-5 animate-slide-up">
+            <input ref={reqFileRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={handleRequestUpload} />
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">📋</span>
+              <h3 className="font-semibold text-t1">Requested by your counsellor</h3>
+              <span className="ml-auto text-xs px-2 py-0.5 rounded-full font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/25">
+                {requests.length} pending
+              </span>
+            </div>
+            <div className="space-y-2.5">
+              {requests.map(req => {
+                const requester = typeof req.requestedBy === 'object' ? req.requestedBy.name : 'Your counsellor';
+                return (
+                  <div key={req._id} className="flex items-center gap-3 bg-muted/60 border border-line rounded-xl px-3.5 py-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-t1 truncate">{req.label || DOC_LABELS[req.type]}</p>
+                      <p className="text-xs text-t3 truncate">
+                        {requester} · {new Date(req.createdAt).toLocaleDateString()}
+                        {req.note && <> · {req.note}</>}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => { setUploadingReq(req); reqFileRef.current?.click(); }}
+                      disabled={uploading}
+                      className="px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-accent/90 disabled:opacity-40 transition flex-shrink-0"
+                    >
+                      {uploading && uploadingReq?._id === req._id ? 'Uploading…' : '⬆ Upload'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

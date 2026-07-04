@@ -66,6 +66,34 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
   const [savingNotes, setSavingNotes]   = useState(false);
   const [reviewDoc, setReviewDoc]       = useState<Doc | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [zipBusy, setZipBusy]           = useState(false);
+
+  async function handleDownloadZip() {
+    if (!student) return;
+    setZipBusy(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const token   = localStorage.getItem('crm_token');
+      const res = await fetch(`${apiBase}/documents/download-all/${student._id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.status === 404) { toast('No documents uploaded yet', 'error'); return; }
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `${student.personal.name.replace(/\s+/g, '_')}_documents.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast('Failed to download documents', 'error');
+    } finally {
+      setZipBusy(false);
+    }
+  }
 
   useEffect(() => {
     Promise.all([
@@ -553,7 +581,21 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
           {/* Tab 2: Documents */}
           {activeTab === 2 && (
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-t1">Documents ({documents.length})</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-t1">Documents ({documents.length})</h3>
+                {documents.length > 0 && (
+                  <button
+                    onClick={handleDownloadZip}
+                    disabled={zipBusy}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-line text-t2 hover:text-accent hover:border-accent/40 text-xs font-semibold transition disabled:opacity-40"
+                  >
+                    <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd"/>
+                    </svg>
+                    {zipBusy ? 'Preparing…' : 'Download all (.zip)'}
+                  </button>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 {documents.map(doc => (
                   <div key={doc._id} className="bg-surface border border-line rounded-2xl p-4 hover:border-accent/40 transition-colors">

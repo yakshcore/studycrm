@@ -20,7 +20,7 @@ StudyCRM is a study-abroad management platform that tracks students from first i
 4. **Document collection** — students upload documents; staff review and approve/reject
 5. **Visa processing** — visa team tracks each stage from submission to decision
 6. **Fee management** — finance team records payments, generates invoices
-7. **Messaging** — counsellor and student communicate via built-in chat
+7. **Messaging** — WhatsApp-style chat between counsellor and student: replies, read-receipt ticks, online presence, typing indicators, file sharing, in-chat document requests (student uploads against them or freely), in-chat forms the student fills inline, and one-click download of all a student's documents as a ZIP
 
 ## Student Journey (10 Stages)
 

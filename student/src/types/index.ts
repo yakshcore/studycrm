@@ -130,7 +130,33 @@ export interface Payment {
   createdAt: string;
 }
 
-export type MessageType = 'text' | 'file' | 'document_request' | 'system';
+export type MessageType = 'text' | 'file' | 'document_request' | 'form_request' | 'form_response' | 'system';
+
+export type DocRequestStatus = 'pending' | 'fulfilled' | 'cancelled';
+
+export interface DocRequestItem {
+  requestId: string;
+  type: DocType;
+  label?: string;
+  note?: string;
+  status: DocRequestStatus;
+}
+
+export interface FormField  { id: string; label: string; required?: boolean; }
+export interface FormAnswer { id: string; label: string; value: string; }
+
+export interface MessageMeta {
+  /* document_request */
+  items?: DocRequestItem[];
+  /* form_request */
+  title?: string;
+  fields?: FormField[];
+  answered?: boolean;
+  responseId?: string;
+  /* form_response */
+  formMessageId?: string;
+  answers?: FormAnswer[];
+}
 
 export interface Message {
   _id: string;
@@ -141,7 +167,22 @@ export interface Message {
   text?: string;
   fileUrl?: string;
   fileName?: string;
+  meta?: MessageMeta;
+  replyTo?: { messageId: string; senderName: string; preview: string };
   readBy: string[];
+  createdAt: string;
+}
+
+export interface DocumentRequest {
+  _id: string;
+  studentId: string;
+  requestedBy: { _id: string; name: string } | string;
+  type: DocType;
+  label?: string;
+  note?: string;
+  status: DocRequestStatus;
+  documentId?: string | { _id: string };
+  fulfilledAt?: string;
   createdAt: string;
 }
 

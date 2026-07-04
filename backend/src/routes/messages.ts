@@ -57,21 +57,36 @@ router.post('/conversation', authenticate, async (req: AuthRequest, res: Respons
   }
 });
 
-// ── Text messages ─────────────────────────────────────────────────────────────
+// ── Text / structured messages ────────────────────────────────────────────────
+
+/** Human-readable preview for the conversation list */
+function previewFor(type: string | undefined, text?: string, meta?: Record<string, unknown>): string {
+  switch (type) {
+    case 'form_request':  return `📝 ${(meta?.title as string) || 'Details requested'}`;
+    case 'form_response': return `📝 Details submitted`;
+    case 'document_request': return `📋 ${text || 'Documents requested'}`;
+    case 'file': return `📎 ${text || 'File'}`;
+    default: return text || '';
+  }
+}
 
 router.post('/send', authenticate, async (req: AuthRequest, res: Response) => {
-  const { conversationId, text } = req.body;
+  const { conversationId, text, type = 'text', meta, replyTo } = req.body;
   try {
     const message = await Message.create({
       conversationId,
       senderId:   req.user!.id,
       senderName: req.user!.name,
+      type,
       text,
+      meta,
+      replyTo,
       readBy: [req.user!.id],
     });
 
+    const preview = previewFor(type, text, meta);
     await Conversation.findByIdAndUpdate(conversationId, {
-      lastMessage: { text, senderId: req.user!.id, createdAt: new Date(), readBy: [req.user!.id] },
+      lastMessage: { text: preview, senderId: req.user!.id, createdAt: new Date(), readBy: [req.user!.id] },
       updatedAt: new Date(),
     });
 
@@ -84,12 +99,12 @@ router.post('/send', authenticate, async (req: AuthRequest, res: Response) => {
       const others = conv.participants
         .map(p => p.toString())
         .filter(p => p !== req.user!.id);
-      const preview = text.length > 120 ? text.slice(0, 117) + '…' : text;
+      const notifBody = preview.length > 120 ? preview.slice(0, 117) + '…' : preview;
       const isStudent = req.user!.role === 'student';
       notify(others, {
         type:  'message',
         title: `💬 ${req.user!.name}`,
-        body:  preview,
+        body:  notifBody,
         link:  isStudent ? undefined : '/chat',
       }).catch(() => {});
     }
@@ -182,6 +197,88 @@ router.post('/send-file', authenticate, upload.single('file'), async (req: AuthR
     }
 
     res.status(201).json(message);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err });
+  }
+});
+
+// ── Form responses (student answers a counsellor's in-chat form) ─────────────
+/**
+ * POST /api/messages/form-response
+ * Body: { conversationId, formMessageId, answers: [{ id, label, value }] }
+ */
+router.post('/form-response', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const { conversationId, formMessageId, answers } = req.body as {
+    conversationId: string;
+    formMessageId: string;
+    answers: Array<{ id: string; label: string; value: string }>;
+  };
+  if (!conversationId || !formMessageId || !Array.isArray(answers)) {
+    res.status(400).json({ message: 'conversationId, formMessageId and answers are required' }); return;
+  }
+  try {
+    const formMsg = await Message.findById(formMessageId);
+    if (!formMsg || formMsg.type !== 'form_request') {
+      res.status(404).json({ message: 'Form request not found' }); return;
+    }
+    const formMeta = (formMsg.meta ?? {}) as { title?: string; answered?: boolean };
+    if (formMeta.answered) { res.status(409).json({ message: 'Form already answered' }); return; }
+
+    const response = await Message.create({
+      conversationId,
+      senderId:   req.user!.id,
+      senderName: req.user!.name,
+      type: 'form_response',
+      meta: { formMessageId, title: formMeta.title, answers },
+      readBy: [req.user!.id],
+    });
+
+    formMsg.meta = { ...formMeta, answered: true, responseId: response._id.toString() };
+    formMsg.markModified('meta');
+    await formMsg.save();
+
+    await Conversation.findByIdAndUpdate(conversationId, {
+      lastMessage: { text: '📝 Details submitted', senderId: req.user!.id, createdAt: new Date() },
+      updatedAt: new Date(),
+    });
+
+    const io = getIo();
+    if (io) {
+      io.to(conversationId).emit('receive_message', response.toObject());
+      io.to(conversationId).emit('message_updated', formMsg.toObject());
+    }
+
+    const conv = await Conversation.findById(conversationId);
+    if (conv) {
+      const others = conv.participants.map(p => p.toString()).filter(p => p !== req.user!.id);
+      notify(others, {
+        type:  'message',
+        title: `📝 ${req.user!.name} submitted details`,
+        body:  formMeta.title || 'Form response received',
+        link:  '/chat',
+      }).catch(() => {});
+    }
+
+    res.status(201).json(response);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err });
+  }
+});
+
+// ── Read receipts ─────────────────────────────────────────────────────────────
+/** POST /api/messages/:conversationId/read — mark everything in the conversation read */
+router.post('/:conversationId/read', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    await Message.updateMany(
+      { conversationId: req.params.conversationId, readBy: { $ne: req.user!.id } },
+      { $addToSet: { readBy: req.user!.id } },
+    );
+    const io = getIo();
+    if (io) io.to(req.params.conversationId).emit('messages_read', {
+      conversationId: req.params.conversationId,
+      userId: req.user!.id,
+    });
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err });
   }

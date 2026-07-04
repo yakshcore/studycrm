@@ -128,7 +128,7 @@ studycrm/
 | `routes/applications.ts` | `/api/applications` | University application lifecycle |
 | `routes/visas.ts` | `/api/visas` | Visa stage progression |
 | `routes/payments.ts` | `/api/payments` | Payment records, invoice generation |
-| `routes/messages.ts` | `/api/messages` | Conversation + message CRUD |
+| `routes/messages.ts` | `/api/messages` | Conversation + message CRUD, form responses, read receipts |
 | `routes/notifications.ts` | `/api/notifications` | List/mark-read notifications |
 | `routes/dashboard.ts` | `/api/dashboard` | Aggregated analytics |
 
@@ -181,12 +181,24 @@ JWT flow:
 Student self-registration:
 - `POST /api/auth/register-student` atomically creates both `User` (role: `student`) and `Student` records and links them via `User.studentId`
 
+### Chat & Document Workflow (counsellor ↔ student)
+
+The chat is WhatsApp-style and carries structured messages beyond plain text. `Message.type` is one of `text | file | document_request | form_request | form_response | system`, with a `meta` payload per type and an optional `replyTo` snapshot (`{ messageId, senderName, preview }`) for quoted replies.
+
+- **Document requests** — `POST /api/documents/requests` (staff only) creates `DocumentRequest` records (`pending → fulfilled | cancelled`), drops a `document_request` card into the chat, and notifies the student. The student uploads via `POST /api/documents/upload` with an optional `requestId` (fulfils the request, flips the card item live via `message_updated`) and optional `conversationId` (also posts the file into the chat). Students can always free-upload without a request. `PUT /api/documents/requests/:id/cancel` withdraws one. `GET /api/documents/requests?studentId=&status=` lists them (student portal shows pending ones on its Documents page).
+- **In-chat forms** — a counsellor sends `type: form_request` with `meta: { title, fields: [{id,label,required}] }`; the student fills it inline in the chat and submits `POST /api/messages/form-response`, which creates a `form_response` message with the answers and marks the original form `answered` (duplicate answers get 409).
+- **ZIP export** — `GET /api/documents/download-all/:studentId` (staff only) streams all current document versions as a ZIP (`archiver` v8, `ZipArchive` class). Buttons live in the CRM chat header and the student profile Documents tab.
+- **Read receipts** — `POST /api/messages/:conversationId/read` adds the caller to `readBy` of every message and emits `messages_read` to the room; the UIs render WhatsApp-style ticks (✓ sent, ✓✓ accent = read).
+- **Presence** — the socket layer tracks online users (`user id → socket ids` map), broadcasts `presence { userId, online }`, and answers `get_presence` with the online-id list; both frontends show green dots / "online" status.
+- `GET /api/students/by-user/:userId` resolves a portal User to their Student record (the CRM chat uses it to enable doc requests + ZIP download).
+
 ### Real-time (Socket.IO)
 
 Socket setup in `src/socket/index.ts`:
 - Auth handshake: client passes `{ token }` in `socket.handshake.auth`
 - On connect: socket joins room `user:<userId>` for targeted events
-- Events: `join_room`, `leave_room`, `send_message`, `typing`, `disconnect`
+- Events: `join_room`, `leave_room`, `send_message`, `typing`, `get_presence`, `disconnect`
+- Server-emitted: `receive_message`, `message_updated`, `messages_read`, `presence`, `notification`
 
 `src/socket/emitter.ts` exports the singleton `io` instance. Routes import it to emit after mutations.
 

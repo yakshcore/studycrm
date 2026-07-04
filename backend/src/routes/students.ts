@@ -52,6 +52,18 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
+/** GET /api/students/by-user/:userId — resolve a portal User to their Student record */
+router.get('/by-user/:userId', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const student = await Student.findOne({ userId: req.params.userId })
+      .populate('assignedCounsellor', 'name email');
+    if (!student) { res.status(404).json({ message: 'Student not found for user' }); return; }
+    res.json(student);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err });
+  }
+});
+
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const student = await Student.findById(req.params.id).populate('assignedCounsellor', 'name email');
