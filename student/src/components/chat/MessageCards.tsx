@@ -73,7 +73,7 @@ export function DocRequestCard({
   }
 
   return (
-    <div className="rounded-2xl border border-line glass-card overflow-hidden w-72 max-w-full">
+    <div className="msg-bubble rounded-2xl border border-line glass-card overflow-hidden w-72 max-w-full">
       <input ref={fileRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={onFile} />
       <div className="px-3.5 py-2.5 bg-accent/10 border-b border-accent/20 flex items-center gap-2">
         <span className="text-base">📋</span>
@@ -129,7 +129,7 @@ export function FormRequestCard({
   }
 
   return (
-    <div className="rounded-2xl border border-line glass-card overflow-hidden w-72 max-w-full">
+    <div className="msg-bubble rounded-2xl border border-line glass-card overflow-hidden w-72 max-w-full">
       <div className="px-3.5 py-2.5 bg-violet-500/10 border-b border-violet-500/20 flex items-center gap-2">
         <span className="text-base">📝</span>
         <p className="text-xs font-bold text-violet-500 uppercase tracking-wider truncate">
@@ -188,7 +188,7 @@ export function FormRequestCard({
 export function FormResponseCard({ msg }: { msg: Message }) {
   const meta = msg.meta ?? {};
   return (
-    <div className="rounded-2xl border border-line glass-card overflow-hidden w-72 max-w-full">
+    <div className="msg-bubble rounded-2xl border border-line glass-card overflow-hidden w-72 max-w-full">
       <div className="px-3.5 py-2.5 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center gap-2">
         <span className="text-base">📝</span>
         <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider truncate">

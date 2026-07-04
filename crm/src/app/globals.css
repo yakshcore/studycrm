@@ -238,6 +238,37 @@ body {
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
 /* ═══════════════════════════════════════════════════════════════
+   CHAT SMOOTHNESS
+═══════════════════════════════════════════════════════════════ */
+/* Message entrance — slides in from the sender's side with a soft spring */
+@keyframes msg-in-left {
+  from { opacity: 0; transform: translate(-10px, 12px) scale(0.96); }
+  to   { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+@keyframes msg-in-right {
+  from { opacity: 0; transform: translate(10px, 12px) scale(0.96); }
+  to   { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+.animate-msg-left  { animation: msg-in-left  0.3s cubic-bezier(.22, 1.2, .36, 1) both; }
+.animate-msg-right { animation: msg-in-right 0.3s cubic-bezier(.22, 1.2, .36, 1) both; }
+
+/* Bubble micro-interaction — gentle lift on hover */
+.msg-bubble { transition: transform .18s cubic-bezier(.4, 0, .2, 1), box-shadow .18s ease, filter .18s ease; }
+.msg-bubble:hover { transform: translateY(-1px); filter: brightness(1.03); }
+
+/* Date chips pop softly */
+@keyframes chip-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-chip-in { animation: chip-in 0.25s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-msg-left, .animate-msg-right, .animate-chip-in { animation: none; }
+  .msg-bubble, .msg-bubble:hover { transition: none; transform: none; filter: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    GLASS / GLOW HELPERS
 ═══════════════════════════════════════════════════════════════ */
 .glass {

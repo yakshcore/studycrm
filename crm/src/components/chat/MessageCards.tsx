@@ -60,7 +60,7 @@ export function DocRequestCard({
 }) {
   const items = msg.meta?.items ?? [];
   return (
-    <div className={`rounded-2xl border overflow-hidden w-72 max-w-full ${
+    <div className={`msg-bubble rounded-2xl border overflow-hidden w-72 max-w-full ${
       isMe ? 'border-accent/40 bg-accent/5' : 'border-line bg-card'
     }`}>
       <div className="px-3.5 py-2.5 bg-accent/10 border-b border-accent/20 flex items-center gap-2">
@@ -97,7 +97,7 @@ export function DocRequestCard({
 export function FormRequestCard({ msg, isMe }: { msg: Message; isMe: boolean }) {
   const meta = msg.meta ?? {};
   return (
-    <div className={`rounded-2xl border overflow-hidden w-72 max-w-full ${
+    <div className={`msg-bubble rounded-2xl border overflow-hidden w-72 max-w-full ${
       isMe ? 'border-accent/40 bg-accent/5' : 'border-line bg-card'
     }`}>
       <div className="px-3.5 py-2.5 bg-violet-500/10 border-b border-violet-500/20 flex items-center gap-2">
@@ -128,7 +128,7 @@ export function FormRequestCard({ msg, isMe }: { msg: Message; isMe: boolean }) 
 export function FormResponseCard({ msg, isMe }: { msg: Message; isMe: boolean }) {
   const meta = msg.meta ?? {};
   return (
-    <div className={`rounded-2xl border overflow-hidden w-72 max-w-full ${
+    <div className={`msg-bubble rounded-2xl border overflow-hidden w-72 max-w-full ${
       isMe ? 'border-accent/40 bg-accent/5' : 'border-line bg-card'
     }`}>
       <div className="px-3.5 py-2.5 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center gap-2">

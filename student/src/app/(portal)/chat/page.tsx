@@ -304,7 +304,7 @@ export default function ChatPage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-1 min-h-0">
+        <div className="flex-1 overflow-y-auto scroll-smooth overscroll-contain px-4 sm:px-6 py-4 space-y-1 min-h-0">
           {loading ? (
             <MessageSkeleton />
           ) : !counsellor ? (
@@ -339,12 +339,12 @@ export default function ChatPage() {
                   <div key={msg._id}>
                     {showDate && (
                       <div className="flex justify-center my-3">
-                        <span className="text-xs text-t3 bg-muted px-3 py-1 rounded-full">
+                        <span className="text-xs text-t3 bg-muted px-3 py-1 rounded-full animate-chip-in">
                           {new Date(msg.createdAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                         </span>
                       </div>
                     )}
-                    <div className={`group flex ${isMe ? 'justify-end' : 'justify-start'} gap-2 py-1`}>
+                    <div className={`group flex ${isMe ? 'justify-end animate-msg-right' : 'justify-start animate-msg-left'} gap-2 py-1`}>
                       {!isMe && (
                         <div className="w-7 h-7 rounded-full bg-accent/20 text-accent text-xs font-bold flex items-center justify-center flex-shrink-0 self-end mb-4">
                           {msg.senderName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
@@ -380,7 +380,7 @@ export default function ChatPage() {
                             {msg.type === 'form_response' && <FormResponseCard msg={msg} />}
                           </>
                         ) : (
-                          <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                          <div className={`msg-bubble px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                             isMe
                               ? 'bg-gradient-to-br from-accent to-accent/75 text-white rounded-br-md glow-accent-sm'
                               : 'glass-card text-t1 rounded-bl-md'
