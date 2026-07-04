@@ -312,8 +312,8 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
                   Counsellor: {typeof student.assignedCounsellor === 'string' ? student.assignedCounsellor : student.assignedCounsellor.name}
                 </p>
               )}
-              {/* Chat button — only available when the student has a portal account */}
-              {student.userId && (
+              {/* Chat button — needs a portal account; admins have no chat access */}
+              {student.userId && user && !['admin', 'super_admin'].includes(user.role) && (
                 <Link
                   href={`/chat?with=${student.userId}`}
                   className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-accent/15 text-accent text-xs font-semibold hover:bg-accent/25 transition-colors"

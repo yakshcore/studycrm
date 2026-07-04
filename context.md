@@ -191,6 +191,8 @@ The chat uses an **iMessage-style visual theme** ("iMessage Air"): borderless gr
 - **Read receipts** — `POST /api/messages/:conversationId/read` adds the caller to `readBy` of every message and emits `messages_read` to the room; the UIs render WhatsApp-style ticks (✓ sent, ✓✓ accent = read).
 - **Presence** — the socket layer tracks online users (`user id → socket ids` map), broadcasts `presence { userId, online }`, and answers `get_presence` with the online-id list; both frontends show green dots / "online" status.
 - `GET /api/students/by-user/:userId` resolves a portal User to their Student record (the CRM chat uses it to enable doc requests + ZIP download).
+- **Chat access** — `admin` and `super_admin` are blocked from all `/api/messages` routes (router-level guard) and the CRM hides the Chat nav/profile button from them. Chat is for staff working cases + students.
+- **Counsellor reassignment** — changing `assignedCounsellor` (via PUT/PATCH `/students/:id` or PATCH `/students/:id/assign-counsellor`) triggers `handleCounsellorChange`: the old counsellor↔student conversation gets `archived: true` (history stays readable for both sides; `/send`, `/send-file`, `/form-response` return 403 "conversation is closed"), a conversation with the new counsellor is created or un-archived, system messages record the change in both threads, and `conversations_changed` / `conversation_archived` socket events tell clients to refresh. The student portal chat is a rooms list: closed rooms show a "Closed" badge and a read-only notice; the current counsellor's room is tagged "Current".
 
 ### Real-time (Socket.IO)
 

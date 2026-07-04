@@ -78,11 +78,16 @@ router.post('/requests', authenticate, async (req: AuthRequest, res: Response): 
       status: 'pending',
     })));
 
-    // Locate the chat with the student (explicit id wins, else 1-on-1 lookup)
-    let convId = conversationId;
-    if (!convId && student.userId) {
+    // Locate the chat with the student (explicit id wins, else 1-on-1 lookup).
+    // Closed conversations never receive new request cards.
+    let convId: string | undefined = conversationId;
+    if (convId) {
+      const conv = await Conversation.findById(convId).select('archived');
+      if (!conv || conv.archived) convId = undefined;
+    } else if (student.userId) {
       const conv = await Conversation.findOne({
         participants: { $all: [req.user!.id, student.userId.toString()], $size: 2 },
+        archived: { $ne: true },
       });
       if (conv) convId = conv._id.toString();
     }
@@ -294,7 +299,10 @@ router.post('/upload', authenticate, async (req: AuthRequest, res: Response, nex
     }
 
     // Optionally drop the file into the chat so both sides see it inline
-    if (conversationId) {
+    const uploadConv = conversationId
+      ? await Conversation.findById(conversationId).select('archived')
+      : null;
+    if (uploadConv && !uploadConv.archived) {
       const chatMsg = await Message.create({
         conversationId,
         senderId:   req.user!.id,

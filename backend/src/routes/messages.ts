@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import path from 'path';
 import multer from 'multer';
 import mongoose from 'mongoose';
@@ -9,6 +9,17 @@ import { getIo } from '../socket/emitter';
 import { notify } from '../utils/notify';
 
 const router = Router();
+
+// Admin accounts have no chat access — counselling chat is between staff who
+// work a student's case (counsellors etc.) and the student.
+const NO_CHAT_ROLES = ['admin', 'super_admin'];
+router.use(authenticate, (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.user && NO_CHAT_ROLES.includes(req.user.role)) {
+    res.status(403).json({ message: 'Chat is not available for admin accounts' });
+    return;
+  }
+  next();
+});
 
 // ── Multer (chat file uploads) ───────────────────────────────────────────────
 const storage = multer.diskStorage({
@@ -70,9 +81,13 @@ function previewFor(type: string | undefined, text?: string, meta?: Record<strin
   }
 }
 
-router.post('/send', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/send', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   const { conversationId, text, type = 'text', meta, replyTo } = req.body;
   try {
+    const convCheck = await Conversation.findById(conversationId).select('archived');
+    if (!convCheck) { res.status(404).json({ message: 'Conversation not found' }); return; }
+    if (convCheck.archived) { res.status(403).json({ message: 'This conversation is closed' }); return; }
+
     const message = await Message.create({
       conversationId,
       senderId:   req.user!.id,
@@ -126,6 +141,10 @@ router.post('/send-file', authenticate, upload.single('file'), async (req: AuthR
 
   const { conversationId, studentId } = req.body as Record<string, string>;
   if (!conversationId) { res.status(400).json({ message: 'conversationId is required' }); return; }
+
+  const convCheck = await Conversation.findById(conversationId).select('archived');
+  if (!convCheck) { res.status(404).json({ message: 'Conversation not found' }); return; }
+  if (convCheck.archived) { res.status(403).json({ message: 'This conversation is closed' }); return; }
 
   const fileUrl  = `/uploads/${req.file.filename}`;
   const fileName = req.file.originalname;
@@ -217,6 +236,10 @@ router.post('/form-response', authenticate, async (req: AuthRequest, res: Respon
     res.status(400).json({ message: 'conversationId, formMessageId and answers are required' }); return;
   }
   try {
+    const convCheck = await Conversation.findById(conversationId).select('archived');
+    if (!convCheck) { res.status(404).json({ message: 'Conversation not found' }); return; }
+    if (convCheck.archived) { res.status(403).json({ message: 'This conversation is closed' }); return; }
+
     const formMsg = await Message.findById(formMessageId);
     if (!formMsg || formMsg.type !== 'form_request') {
       res.status(404).json({ message: 'Form request not found' }); return;
@@ -298,8 +321,12 @@ router.get('/:conversationId', authenticate, async (req, res: Response) => {
 });
 
 /** Generic send — used by CRM counsellor chat */
-router.post('/:conversationId', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/:conversationId', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const convCheck = await Conversation.findById(req.params.conversationId).select('archived');
+    if (!convCheck) { res.status(404).json({ message: 'Conversation not found' }); return; }
+    if (convCheck.archived) { res.status(403).json({ message: 'This conversation is closed' }); return; }
+
     const message = await Message.create({
       ...req.body,
       conversationId: req.params.conversationId,

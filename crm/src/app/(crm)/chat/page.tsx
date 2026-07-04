@@ -148,6 +148,7 @@ function ChatInner() {
   const activeConvRef  = useRef<string | null>(null);
 
   const myId = user?._id ?? '';
+  const chatBlocked = !!user && ['admin', 'super_admin'].includes(user.role);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 60);
@@ -159,6 +160,7 @@ function ChatInner() {
 
   /* ── Load conversations on mount ───────────────────────────────────────── */
   useEffect(() => {
+    if (chatBlocked) { setLoading(false); return; }
     api.get<Conversation[]>('/messages/conversations')
       .then(res => {
         setConversations(res.data);
@@ -189,7 +191,7 @@ function ChatInner() {
 
   /* ── Socket connection ─────────────────────────────────────────────────── */
   useEffect(() => {
-    if (!user) return;
+    if (!user || chatBlocked) return;
     const token  = localStorage.getItem('crm_token');
     const socket = io(SOCKET_URL, { auth: { token } });
     socketRef.current = socket;
@@ -249,6 +251,22 @@ function ChatInner() {
 
     socket.on('typing', ({ userId, isTyping: t }: { userId: string; isTyping: boolean }) => {
       if (userId !== myId) setOtherTyping(t);
+    });
+
+    // Counsellor reassignment: refresh the list and pick up archived flags
+    socket.on('conversations_changed', () => {
+      api.get<Conversation[]>('/messages/conversations').then(res => {
+        setConversations(res.data);
+        const cur = res.data.find(c => c._id === activeConvRef.current);
+        if (cur) setActiveConv(prev => (prev ? { ...prev, archived: cur.archived } : prev));
+      }).catch(() => {});
+    });
+
+    socket.on('conversation_archived', ({ conversationId }: { conversationId: string }) => {
+      setConversations(prev => prev.map(c => c._id === conversationId ? { ...c, archived: true } : c));
+      if (activeConvRef.current === conversationId) {
+        setActiveConv(prev => (prev ? { ...prev, archived: true } : prev));
+      }
     });
 
     return () => { socket.disconnect(); };
@@ -438,6 +456,21 @@ function ChatInner() {
 
   const otherParticipant = activeConv ? getOther(activeConv, myId) : null;
   const otherOnline      = otherParticipant ? onlineIds.has(otherParticipant._id) : false;
+  const isClosed         = !!activeConv?.archived;
+
+  /* ── Admin accounts have no chat access ────────────────────────────────── */
+  if (chatBlocked) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center p-8">
+        <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4 text-3xl">🔒</div>
+        <p className="text-t1 font-semibold text-base">Chat is not available for admin accounts</p>
+        <p className="text-t3 text-sm mt-1.5 max-w-sm leading-relaxed">
+          Conversations happen between students and the staff working their case (counsellors, visa team, …).
+          Use the student profile to review case activity instead.
+        </p>
+      </div>
+    );
+  }
 
   /* ─────────────────────────────────────────────────────────────────────── */
   return (
@@ -507,7 +540,9 @@ function ChatInner() {
                       <p className={`text-sm font-semibold truncate ${isActive ? 'text-accent' : 'text-t1'}`}>
                         {other?.name ?? 'Unknown'}
                       </p>
-                      {lastTime && (
+                      {conv.archived ? (
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-t3 bg-muted border border-line rounded-full px-2 py-0.5 flex-shrink-0">Closed</span>
+                      ) : lastTime && (
                         <span className="text-[11px] text-t3 flex-shrink-0">{lastTime}</span>
                       )}
                     </div>
@@ -564,11 +599,13 @@ function ChatInner() {
                   {otherParticipant?.name ?? 'Unknown'}
                 </p>
                 <p className="text-xs text-t3">
-                  {otherTyping
-                    ? <span className="text-accent">typing…</span>
-                    : otherOnline
-                      ? <span className="text-emerald-500">online</span>
-                      : (otherParticipant?.role === 'student' ? 'Student' : (otherParticipant?.role ?? ''))}
+                  {isClosed
+                    ? <span className="im-sub">conversation closed</span>
+                    : otherTyping
+                      ? <span className="text-accent">typing…</span>
+                      : otherOnline
+                        ? <span className="text-emerald-500">online</span>
+                        : (otherParticipant?.role === 'student' ? 'Student' : (otherParticipant?.role ?? ''))}
                 </p>
               </div>
               {/* Download-all-documents ZIP */}
@@ -701,6 +738,16 @@ function ChatInner() {
               )}
             </div>
 
+            {/* Composer — replaced by a notice when the conversation is closed */}
+            {isClosed ? (
+              <div className="flex-shrink-0 px-4 sm:px-5 py-4 im-chrome border-t">
+                <p className="text-sm im-sub text-center leading-relaxed">
+                  🔒 This conversation is closed — the student was reassigned to another counsellor.
+                  The history stays available.
+                </p>
+              </div>
+            ) : (
+            <>
             {/* Reply banner */}
             {replyTo && (
               <div className="flex-shrink-0 px-4 sm:px-5 pt-2 im-chrome border-t">
@@ -795,6 +842,8 @@ function ChatInner() {
                 </svg>
               </button>
             </form>
+            </>
+            )}
           </>
         )}
       </div>

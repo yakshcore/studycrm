@@ -111,6 +111,8 @@ export interface Conversation {
   _id: string;
   participants: ConversationParticipant[];
   studentId?: { _id: string; personal: { name: string } };
+  /** Closed after counsellor reassignment — history readable, sending blocked */
+  archived?: boolean;
   lastMessage?: { text: string; senderId: string; createdAt: string };
   updatedAt: string;
   createdAt: string;

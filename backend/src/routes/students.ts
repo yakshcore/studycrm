@@ -1,9 +1,86 @@
 import { Router, Response } from 'express';
 import mongoose from 'mongoose';
-import Student from '../models/Student';
+import Student, { IStudent } from '../models/Student';
+import Conversation from '../models/Conversation';
+import Message from '../models/Message';
+import User from '../models/User';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { getIo } from '../socket/emitter';
 
 const router = Router();
+
+/**
+ * Counsellor reassignment side-effects:
+ * - the old counsellor↔student conversation is archived (history readable, sending blocked)
+ * - a conversation with the new counsellor is created (or un-archived) so it
+ *   shows up in both chat lists immediately
+ * - system messages document the change in both threads
+ */
+async function handleCounsellorChange(
+  student: IStudent,
+  oldCounsellorId: string | undefined,
+  newCounsellorId: string | undefined,
+  actor: { id: string; name: string },
+): Promise<void> {
+  if ((oldCounsellorId ?? '') === (newCounsellorId ?? '')) return;
+  if (!student.userId) return; // no portal account — nothing to do in chat
+  const userId = student.userId.toString();
+  const io = getIo();
+  const touched = new Set<string>([userId]);
+
+  // Close the old conversation
+  if (oldCounsellorId) {
+    touched.add(oldCounsellorId);
+    const oldConv = await Conversation.findOne({
+      participants: { $all: [userId, oldCounsellorId], $size: 2 },
+    });
+    if (oldConv && !oldConv.archived) {
+      const sys = await Message.create({
+        conversationId: oldConv._id,
+        senderId: actor.id,
+        senderName: actor.name,
+        type: 'system',
+        text: 'Counsellor reassigned — this conversation is now closed. The history stays available.',
+        readBy: [actor.id],
+      });
+      oldConv.archived = true;
+      oldConv.set('lastMessage', { text: sys.text, senderId: sys.senderId, createdAt: new Date() });
+      await oldConv.save();
+      if (io) {
+        io.to(oldConv._id.toString()).emit('receive_message', sys.toObject());
+        io.to(oldConv._id.toString()).emit('conversation_archived', { conversationId: oldConv._id.toString() });
+      }
+    }
+  }
+
+  // Open (or re-open) the conversation with the new counsellor
+  if (newCounsellorId) {
+    touched.add(newCounsellorId);
+    let conv = await Conversation.findOne({
+      participants: { $all: [userId, newCounsellorId], $size: 2 },
+    });
+    if (conv) {
+      if (conv.archived) { conv.archived = false; await conv.save(); }
+    } else {
+      conv = await Conversation.create({ participants: [userId, newCounsellorId], studentId: student._id });
+    }
+    const newCounsellor = await User.findById(newCounsellorId).select('name');
+    const sys = await Message.create({
+      conversationId: conv._id,
+      senderId: actor.id,
+      senderName: actor.name,
+      type: 'system',
+      text: `${newCounsellor?.name ?? 'A new counsellor'} is now the assigned counsellor.`,
+      readBy: [actor.id],
+    });
+    conv.set('lastMessage', { text: sys.text, senderId: sys.senderId, createdAt: new Date() });
+    await conv.save();
+    if (io) io.to(conv._id.toString()).emit('receive_message', sys.toObject());
+  }
+
+  // Nudge everyone involved to refresh their conversation lists
+  if (io) for (const uid of touched) io.to(`user:${uid}`).emit('conversations_changed');
+}
 
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -93,9 +170,17 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     res.status(403).json({ message: 'University users cannot modify student records' }); return;
   }
   try {
+    const before = await Student.findById(req.params.id).select('assignedCounsellor');
     const student = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: false })
       .populate('assignedCounsellor', 'name email');
     if (!student) { res.status(404).json({ message: 'Student not found' }); return; }
+
+    if ('assignedCounsellor' in req.body) {
+      const newId = (student.assignedCounsellor as unknown as { _id?: mongoose.Types.ObjectId } | null)?._id?.toString();
+      handleCounsellorChange(student, before?.assignedCounsellor?.toString(), newId, {
+        id: req.user!.id, name: req.user!.name,
+      }).catch(() => {});
+    }
     res.json(student);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err });
@@ -108,9 +193,17 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     res.status(403).json({ message: 'University users cannot modify student records' }); return;
   }
   try {
+    const before = await Student.findById(req.params.id).select('assignedCounsellor');
     const student = await Student.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true, runValidators: false })
       .populate('assignedCounsellor', 'name email');
     if (!student) { res.status(404).json({ message: 'Student not found' }); return; }
+
+    if ('assignedCounsellor' in req.body) {
+      const newId = (student.assignedCounsellor as unknown as { _id?: mongoose.Types.ObjectId } | null)?._id?.toString();
+      handleCounsellorChange(student, before?.assignedCounsellor?.toString(), newId, {
+        id: req.user!.id, name: req.user!.name,
+      }).catch(() => {});
+    }
     res.json(student);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err });
@@ -124,6 +217,7 @@ router.patch('/:id/assign-counsellor', authenticate, async (req: AuthRequest, re
   }
   const { counsellorId } = req.body;
   try {
+    const before = await Student.findById(req.params.id).select('assignedCounsellor');
     const student = await Student.findByIdAndUpdate(
       req.params.id,
       { assignedCounsellor: counsellorId || null },
@@ -131,8 +225,11 @@ router.patch('/:id/assign-counsellor', authenticate, async (req: AuthRequest, re
     ).populate('assignedCounsellor', 'name email');
     if (!student) { res.status(404).json({ message: 'Student not found' }); return; }
 
+    handleCounsellorChange(student, before?.assignedCounsellor?.toString(), counsellorId || undefined, {
+      id: req.user!.id, name: req.user!.name,
+    }).catch(() => {});
+
     const { notify } = await import('../utils/notify');
-    const User       = (await import('../models/User')).default;
 
     // Notify the counsellor being assigned
     if (counsellorId) {

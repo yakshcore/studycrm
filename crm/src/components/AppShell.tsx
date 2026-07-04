@@ -78,12 +78,13 @@ const NAV_ITEMS: NavItem[] = [
   {
     href: '/chat',
     label: 'Chat',
+    // Admin accounts have no chat access — chat is for staff working cases
+    roles: ['counsellor_manager','counsellor','finance','accountant','visa_team','doc_verification','university_team','support'],
     icon: (
       <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
         <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd"/>
       </svg>
     ),
-    roles: ['super_admin','admin','counsellor_manager','counsellor','support'],
   },
   {
     href: '/applications',
