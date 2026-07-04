@@ -285,3 +285,55 @@ body {
 .nav-active-glow {
   box-shadow: inset 3px 0 0 var(--color-accent);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   iMESSAGE AIR — chat theme (palette-independent)
+   CRM is dark-first: :root = dark, :root.light = light
+═══════════════════════════════════════════════════════════════ */
+:root {
+  --im-thread:     #000000;
+  --im-other-bg:   #26262b;
+  --im-other-ink:  #f2f2f7;
+  --im-chrome:     rgba(18, 18, 20, 0.88);
+  --im-hairline:   #2a2a2e;
+  --im-field-bg:   #1c1c1e;
+  --im-field-line: #3a3a3c;
+  --im-ink:        #f2f2f7;
+  --im-sub:        #8e8e93;
+  --im-card:       #1c1c1e;
+  --im-quote:      rgba(255, 255, 255, 0.10);
+}
+:root.light {
+  --im-thread:     #ffffff;
+  --im-other-bg:   #e9e9eb;
+  --im-other-ink:  #1c1c1e;
+  --im-chrome:     rgba(249, 249, 251, 0.92);
+  --im-hairline:   #ececf0;
+  --im-field-bg:   #ffffff;
+  --im-field-line: #d8d8dc;
+  --im-ink:        #1c1c1e;
+  --im-sub:        #8e8e93;
+  --im-card:       #f4f4f6;
+  --im-quote:      rgba(0, 0, 0, 0.07);
+}
+
+.im-thread { background: var(--im-thread); }
+.im-chrome {
+  background: var(--im-chrome);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border-color: var(--im-hairline) !important;
+}
+.im-bubble-me    { background: linear-gradient(180deg, #0a84ff, #0066f5); color: #ffffff; }
+.im-bubble-other { background: var(--im-other-bg); color: var(--im-other-ink); }
+.im-field {
+  background: var(--im-field-bg);
+  border: 1px solid var(--im-field-line);
+  color: var(--im-ink);
+}
+.im-field::placeholder { color: var(--im-sub); }
+.im-sub  { color: var(--im-sub); }
+.im-send { background: #0a84ff; color: #ffffff; }
+.im-send:hover:not(:disabled) { background: #0974e0; }
+.im-card { background: var(--im-card); border-color: var(--im-hairline); }
+.im-quote { background: var(--im-quote); }

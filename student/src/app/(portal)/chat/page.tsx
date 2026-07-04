@@ -274,9 +274,9 @@ export default function ChatPage() {
 
   return (
     <AppShell title="Chat">
-      <div className="flex flex-col h-full max-h-screen">
+      <div className="flex flex-col h-full max-h-screen im-thread">
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 sm:px-6 py-3.5 border-b border-line glass-nav flex-shrink-0">
+        <div className="flex items-center gap-3 px-4 sm:px-6 py-3.5 border-b im-chrome flex-shrink-0">
           {counsellor ? (
             <>
               <div className="relative flex-shrink-0">
@@ -339,18 +339,12 @@ export default function ChatPage() {
                   <div key={msg._id}>
                     {showDate && (
                       <div className="flex justify-center my-3">
-                        <span className="text-xs text-t3 bg-muted px-3 py-1 rounded-full animate-chip-in">
+                        <span className="text-[11px] font-semibold im-sub px-3 py-1 animate-chip-in">
                           {new Date(msg.createdAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                         </span>
                       </div>
                     )}
                     <div className={`group flex ${isMe ? 'justify-end animate-msg-right' : 'justify-start animate-msg-left'} gap-2 py-1`}>
-                      {!isMe && (
-                        <div className="w-7 h-7 rounded-full bg-accent/20 text-accent text-xs font-bold flex items-center justify-center flex-shrink-0 self-end mb-4">
-                          {msg.senderName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-
                       {isMe && (
                         <button
                           onClick={() => { setReplyTo(msg); inputRef.current?.focus(); }}
@@ -380,16 +374,16 @@ export default function ChatPage() {
                             {msg.type === 'form_response' && <FormResponseCard msg={msg} />}
                           </>
                         ) : (
-                          <div className={`msg-bubble px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                          <div className={`msg-bubble px-4 py-2.5 rounded-[20px] text-sm leading-relaxed ${
                             isMe
-                              ? 'bg-gradient-to-br from-accent to-accent/75 text-white rounded-br-md glow-accent-sm'
-                              : 'glass-card text-t1 rounded-bl-md'
+                              ? 'im-bubble-me rounded-br-[6px]'
+                              : 'im-bubble-other rounded-bl-[6px]'
                           }`}>
                             {msg.replyTo && <ReplyQuote replyTo={msg.replyTo} isMe={isMe} />}
                             {msg.type === 'file' ? <FileContent msg={msg} isMe={isMe} /> : msg.text}
                           </div>
                         )}
-                        <p className={`text-xs text-t3 px-1 flex items-center gap-1 ${isMe ? 'justify-end' : ''}`}>
+                        <p className={`text-[11px] im-sub px-1 flex items-center gap-1 ${isMe ? 'justify-end' : ''}`}>
                           {new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                           {isMe && <Ticks read={read} />}
                         </p>
@@ -413,11 +407,11 @@ export default function ChatPage() {
 
               {/* Typing indicator */}
               {counsellorTyping && (
-                <div className="flex items-center gap-2 pl-9 py-1">
-                  <div className="flex items-center gap-1 px-4 py-2.5 rounded-2xl rounded-bl-md glass-card">
-                    <span className="w-1.5 h-1.5 rounded-full bg-t3 typing-dot" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-t3 typing-dot" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-t3 typing-dot" />
+                <div className="flex items-center gap-2 py-1 animate-msg-left">
+                  <div className="flex items-center gap-1 px-4 py-3 rounded-[20px] rounded-bl-[6px] im-bubble-other">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] typing-dot" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] typing-dot" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] typing-dot" />
                   </div>
                 </div>
               )}
@@ -429,13 +423,13 @@ export default function ChatPage() {
 
         {/* Reply banner */}
         {counsellor && replyTo && (
-          <div className="flex-shrink-0 px-4 sm:px-6 pt-2 glass-nav border-t border-line">
-            <div className="flex items-center gap-2 bg-muted border-l-2 border-accent rounded-lg px-3 py-2">
+          <div className="flex-shrink-0 px-4 sm:px-6 pt-2 im-chrome border-t">
+            <div className="flex items-center gap-2 im-quote border-l-2 border-[#0a84ff] rounded-lg px-3 py-2">
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-accent">Replying to {replyTo.senderName}</p>
-                <p className="text-xs text-t2 truncate">{msgPreview(replyTo)}</p>
+                <p className="text-xs font-semibold text-[#0a84ff]">Replying to {replyTo.senderName}</p>
+                <p className="text-xs im-sub truncate">{msgPreview(replyTo)}</p>
               </div>
-              <button onClick={() => setReplyTo(null)} className="text-t3 hover:text-t1 text-lg leading-none px-1">×</button>
+              <button onClick={() => setReplyTo(null)} className="im-sub hover:opacity-70 text-lg leading-none px-1">×</button>
             </div>
           </div>
         )}
@@ -444,7 +438,7 @@ export default function ChatPage() {
         {counsellor && (
           <form
             onSubmit={handleSend}
-            className={`flex-shrink-0 px-4 sm:px-6 py-3 glass-nav flex items-center gap-2 ${replyTo ? '' : 'border-t border-line'}`}
+            className={`flex-shrink-0 px-4 sm:px-6 py-3 im-chrome flex items-center gap-2 ${replyTo ? '' : 'border-t'}`}
           >
             <input
               ref={fileInputRef}
@@ -480,12 +474,12 @@ export default function ChatPage() {
               onChange={handleInputChange}
               placeholder="Message your counsellor…"
               disabled={loading || !conversation}
-              className="flex-1 bg-muted border border-line rounded-xl px-4 py-2.5 text-sm text-t1 placeholder:text-t3 focus:outline-none focus:border-accent transition disabled:opacity-50"
+              className="flex-1 im-field rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#0a84ff] transition disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={!input.trim() || sending || !conversation}
-              className="w-10 h-10 rounded-xl bg-accent text-white flex items-center justify-center disabled:opacity-40 hover:bg-accent/90 transition active:scale-95 flex-shrink-0 glow-accent-sm"
+              className="w-10 h-10 rounded-full im-send flex items-center justify-center disabled:opacity-40 transition active:scale-95 flex-shrink-0"
             >
               <svg viewBox="0 0 20 20" fill="currentColor" className="w-4.5 h-4.5 -rotate-45">
                 <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>

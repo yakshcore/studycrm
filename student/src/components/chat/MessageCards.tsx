@@ -29,7 +29,7 @@ export const REQ_STATUS_STYLE: Record<DocRequestStatus, string> = {
 /* ── Read-receipt ticks ──────────────────────────────────────────────────── */
 export function Ticks({ read }: { read: boolean }) {
   return (
-    <svg viewBox="0 0 18 12" fill="none" className={`inline-block w-4 h-3 ${read ? 'text-accent' : 'text-t3'}`} aria-label={read ? 'Read' : 'Sent'}>
+    <svg viewBox="0 0 18 12" fill="none" className={`inline-block w-4 h-3 ${read ? 'text-[#0a84ff]' : 'text-[#8e8e93]'}`} aria-label={read ? 'Read' : 'Sent'}>
       <path d="M1 6.5L4 9.5L10 2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
       <path d="M7 6.5L10 9.5L16 2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
@@ -40,9 +40,9 @@ export function Ticks({ read }: { read: boolean }) {
 export function ReplyQuote({ replyTo, isMe }: { replyTo: NonNullable<Message['replyTo']>; isMe: boolean }) {
   return (
     <div className={`mb-1.5 px-2.5 py-1.5 rounded-lg border-l-2 text-xs ${
-      isMe ? 'bg-white/15 border-white/60 text-white/85' : 'bg-muted border-accent text-t2'
+      isMe ? 'bg-white/15 border-white/60 text-white/85' : 'im-quote border-[#0a84ff] opacity-90'
     }`}>
-      <p className={`font-semibold ${isMe ? 'text-white' : 'text-accent'}`}>{replyTo.senderName}</p>
+      <p className={`font-semibold ${isMe ? 'text-white' : 'text-[#0a84ff]'}`}>{replyTo.senderName}</p>
       <p className="truncate">{replyTo.preview}</p>
     </div>
   );
@@ -73,11 +73,11 @@ export function DocRequestCard({
   }
 
   return (
-    <div className="msg-bubble rounded-2xl border border-line glass-card overflow-hidden w-72 max-w-full">
+    <div className="msg-bubble rounded-[18px] border im-card overflow-hidden w-72 max-w-full">
       <input ref={fileRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={onFile} />
-      <div className="px-3.5 py-2.5 bg-accent/10 border-b border-accent/20 flex items-center gap-2">
+      <div className="px-3.5 py-2.5 bg-[#0a84ff]/10 border-b border-[#0a84ff]/20 flex items-center gap-2">
         <span className="text-base">📋</span>
-        <p className="text-xs font-bold text-accent uppercase tracking-wider">Documents Requested</p>
+        <p className="text-xs font-bold text-[#0a84ff] uppercase tracking-wider">Documents Requested</p>
       </div>
       <div className="divide-y divide-line">
         {items.map(item => (
@@ -95,7 +95,7 @@ export function DocRequestCard({
               <button
                 onClick={() => choose(item)}
                 disabled={uploadingId !== null}
-                className="mt-2 w-full py-1.5 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-accent/90 disabled:opacity-40 transition"
+                className="mt-2 w-full py-1.5 rounded-lg bg-[#0a84ff] text-white text-xs font-semibold hover:bg-[#0974e0] disabled:opacity-40 transition"
               >
                 {uploadingId === item.requestId ? 'Uploading…' : '⬆ Upload now'}
               </button>
@@ -129,7 +129,7 @@ export function FormRequestCard({
   }
 
   return (
-    <div className="msg-bubble rounded-2xl border border-line glass-card overflow-hidden w-72 max-w-full">
+    <div className="msg-bubble rounded-[18px] border im-card overflow-hidden w-72 max-w-full">
       <div className="px-3.5 py-2.5 bg-violet-500/10 border-b border-violet-500/20 flex items-center gap-2">
         <span className="text-base">📝</span>
         <p className="text-xs font-bold text-violet-500 uppercase tracking-wider truncate">
@@ -164,7 +164,7 @@ export function FormRequestCard({
             <button
               onClick={submit}
               disabled={!complete || busy}
-              className="w-full py-1.5 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-accent/90 disabled:opacity-40 transition"
+              className="w-full py-1.5 rounded-lg bg-[#0a84ff] text-white text-xs font-semibold hover:bg-[#0974e0] disabled:opacity-40 transition"
             >
               {busy ? 'Sending…' : 'Submit answers'}
             </button>
@@ -188,7 +188,7 @@ export function FormRequestCard({
 export function FormResponseCard({ msg }: { msg: Message }) {
   const meta = msg.meta ?? {};
   return (
-    <div className="msg-bubble rounded-2xl border border-line glass-card overflow-hidden w-72 max-w-full">
+    <div className="msg-bubble rounded-[18px] border im-card overflow-hidden w-72 max-w-full">
       <div className="px-3.5 py-2.5 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center gap-2">
         <span className="text-base">📝</span>
         <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider truncate">

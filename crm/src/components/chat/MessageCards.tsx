@@ -28,8 +28,8 @@ export const REQ_STATUS_STYLE: Record<DocRequestStatus, string> = {
 /* ── Read-receipt ticks (WhatsApp style) ─────────────────────────────────── */
 export function Ticks({ read, onAccent }: { read: boolean; onAccent: boolean }) {
   const color = read
-    ? (onAccent ? 'text-cyan-200' : 'text-accent')
-    : (onAccent ? 'text-white/60' : 'text-t3');
+    ? (onAccent ? 'text-cyan-200' : 'text-[#0a84ff]')
+    : (onAccent ? 'text-white/60' : 'text-[#8e8e93]');
   return (
     <svg viewBox="0 0 18 12" fill="none" className={`inline-block w-4 h-3 ${color}`} aria-label={read ? 'Read' : 'Sent'}>
       <path d="M1 6.5L4 9.5L10 2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
@@ -42,9 +42,9 @@ export function Ticks({ read, onAccent }: { read: boolean; onAccent: boolean }) 
 export function ReplyQuote({ replyTo, isMe }: { replyTo: NonNullable<Message['replyTo']>; isMe: boolean }) {
   return (
     <div className={`mb-1.5 px-2.5 py-1.5 rounded-lg border-l-2 text-xs ${
-      isMe ? 'bg-white/15 border-white/60 text-white/85' : 'bg-muted border-accent text-t2'
+      isMe ? 'bg-white/15 border-white/60 text-white/85' : 'im-quote border-[#0a84ff] opacity-90'
     }`}>
-      <p className={`font-semibold ${isMe ? 'text-white' : 'text-accent'}`}>{replyTo.senderName}</p>
+      <p className={`font-semibold ${isMe ? 'text-white' : 'text-[#0a84ff]'}`}>{replyTo.senderName}</p>
       <p className="truncate">{replyTo.preview}</p>
     </div>
   );
@@ -60,12 +60,10 @@ export function DocRequestCard({
 }) {
   const items = msg.meta?.items ?? [];
   return (
-    <div className={`msg-bubble rounded-2xl border overflow-hidden w-72 max-w-full ${
-      isMe ? 'border-accent/40 bg-accent/5' : 'border-line bg-card'
-    }`}>
-      <div className="px-3.5 py-2.5 bg-accent/10 border-b border-accent/20 flex items-center gap-2">
+    <div className="msg-bubble rounded-[18px] border im-card overflow-hidden w-72 max-w-full">
+      <div className="px-3.5 py-2.5 bg-[#0a84ff]/10 border-b border-[#0a84ff]/20 flex items-center gap-2">
         <span className="text-base">📋</span>
-        <p className="text-xs font-bold text-accent uppercase tracking-wider">Documents Requested</p>
+        <p className="text-xs font-bold text-[#0a84ff] uppercase tracking-wider">Documents Requested</p>
       </div>
       <div className="divide-y divide-line">
         {items.map(item => (
@@ -97,9 +95,7 @@ export function DocRequestCard({
 export function FormRequestCard({ msg, isMe }: { msg: Message; isMe: boolean }) {
   const meta = msg.meta ?? {};
   return (
-    <div className={`msg-bubble rounded-2xl border overflow-hidden w-72 max-w-full ${
-      isMe ? 'border-accent/40 bg-accent/5' : 'border-line bg-card'
-    }`}>
+    <div className="msg-bubble rounded-[18px] border im-card overflow-hidden w-72 max-w-full">
       <div className="px-3.5 py-2.5 bg-violet-500/10 border-b border-violet-500/20 flex items-center gap-2">
         <span className="text-base">📝</span>
         <p className="text-xs font-bold text-violet-500 uppercase tracking-wider truncate">
@@ -128,9 +124,7 @@ export function FormRequestCard({ msg, isMe }: { msg: Message; isMe: boolean }) 
 export function FormResponseCard({ msg, isMe }: { msg: Message; isMe: boolean }) {
   const meta = msg.meta ?? {};
   return (
-    <div className={`msg-bubble rounded-2xl border overflow-hidden w-72 max-w-full ${
-      isMe ? 'border-accent/40 bg-accent/5' : 'border-line bg-card'
-    }`}>
+    <div className="msg-bubble rounded-[18px] border im-card overflow-hidden w-72 max-w-full">
       <div className="px-3.5 py-2.5 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center gap-2">
         <span className="text-base">📝</span>
         <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider truncate">

@@ -525,7 +525,7 @@ function ChatInner() {
       {/* ══ Message pane ═════════════════════════════════════════════════════ */}
       <div className={`
         ${mobileView === 'list' ? 'hidden' : 'flex'} lg:flex
-        flex-col flex-1 min-w-0 bg-base
+        flex-col flex-1 min-w-0 im-thread
       `}>
         {!activeConv ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
@@ -542,7 +542,7 @@ function ChatInner() {
         ) : (
           <>
             {/* Chat header */}
-            <div className="flex items-center gap-3 px-4 sm:px-5 py-3 border-b border-line bg-surface flex-shrink-0">
+            <div className="flex items-center gap-3 px-4 sm:px-5 py-3 border-b im-chrome flex-shrink-0">
               <button
                 onClick={() => setMobileView('list')}
                 className="lg:hidden p-1.5 rounded-lg text-t2 hover:bg-muted -ml-1 flex-shrink-0"
@@ -609,7 +609,6 @@ function ChatInner() {
                   {messages.map((msg, idx) => {
                     const sid    = senderIdOf(msg);
                     const isMe   = sid === myId;
-                    const name   = msg.senderName ?? (typeof msg.senderId === 'object' ? (msg.senderId as { name: string }).name : '');
                     const showDate = idx === 0 ||
                       new Date(msg.createdAt).toDateString() !== new Date(messages[idx - 1].createdAt).toDateString();
                     const read = !!(otherParticipant && msg.readBy?.includes(otherParticipant._id));
@@ -618,7 +617,7 @@ function ChatInner() {
                     if (msg.type === 'system') {
                       return (
                         <div key={msg._id} className="flex justify-center my-3">
-                          <span className="text-xs text-t3 bg-muted px-3 py-1 rounded-full">{msg.text}</span>
+                          <span className="text-[11px] font-semibold im-sub px-3 py-1">{msg.text}</span>
                         </div>
                       );
                     }
@@ -627,18 +626,12 @@ function ChatInner() {
                       <div key={msg._id}>
                         {showDate && (
                           <div className="flex justify-center my-3">
-                            <span className="text-xs text-t3 bg-muted px-3 py-1 rounded-full animate-chip-in">
+                            <span className="text-[11px] font-semibold im-sub px-3 py-1 animate-chip-in">
                               {fmtDate(msg.createdAt)}
                             </span>
                           </div>
                         )}
                         <div className={`group flex ${isMe ? 'justify-end animate-msg-right' : 'justify-start animate-msg-left'} gap-2 py-1`}>
-                          {!isMe && (
-                            <div className="w-7 h-7 rounded-full bg-accent/20 text-accent text-xs font-bold flex items-center justify-center flex-shrink-0 self-end mb-4">
-                              {getInitials(name)}
-                            </div>
-                          )}
-
                           {/* Reply button (left of my bubbles) */}
                           {isMe && (
                             <button
@@ -662,16 +655,16 @@ function ChatInner() {
                                 {msg.type === 'form_response' && <FormResponseCard msg={msg} isMe={isMe} />}
                               </>
                             ) : (
-                              <div className={`msg-bubble px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                              <div className={`msg-bubble px-4 py-2.5 rounded-[20px] text-sm leading-relaxed ${
                                 isMe
-                                  ? 'bg-gradient-to-br from-accent to-accent/75 text-white rounded-br-md shadow-sm'
-                                  : 'bg-card border border-line text-t1 rounded-bl-md'
+                                  ? 'im-bubble-me rounded-br-[6px]'
+                                  : 'im-bubble-other rounded-bl-[6px]'
                               }`}>
                                 {msg.replyTo && <ReplyQuote replyTo={msg.replyTo} isMe={isMe} />}
                                 {msg.type === 'file' ? <FileContent msg={msg} isMe={isMe} /> : msg.text}
                               </div>
                             )}
-                            <p className={`text-xs text-t3 px-1 flex items-center gap-1 ${isMe ? 'justify-end' : ''}`}>
+                            <p className={`text-[11px] im-sub px-1 flex items-center gap-1 ${isMe ? 'justify-end' : ''}`}>
                               {fmtTime(msg.createdAt)}
                               {isMe && <Ticks read={read} onAccent={false} />}
                             </p>
@@ -695,11 +688,11 @@ function ChatInner() {
                   })}
 
                   {otherTyping && (
-                    <div className="flex items-center gap-2 pl-9 py-1">
-                      <div className="flex items-center gap-1 px-4 py-2.5 rounded-2xl rounded-bl-md bg-card border border-line">
-                        <span className="w-1.5 h-1.5 rounded-full bg-t3 typing-dot" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-t3 typing-dot" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-t3 typing-dot" />
+                    <div className="flex items-center gap-2 py-1 animate-msg-left">
+                      <div className="flex items-center gap-1 px-4 py-3 rounded-[20px] rounded-bl-[6px] im-bubble-other">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] typing-dot" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] typing-dot" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] typing-dot" />
                       </div>
                     </div>
                   )}
@@ -710,13 +703,13 @@ function ChatInner() {
 
             {/* Reply banner */}
             {replyTo && (
-              <div className="flex-shrink-0 px-4 sm:px-5 pt-2 bg-surface border-t border-line">
-                <div className="flex items-center gap-2 bg-muted border-l-2 border-accent rounded-lg px-3 py-2">
+              <div className="flex-shrink-0 px-4 sm:px-5 pt-2 im-chrome border-t">
+                <div className="flex items-center gap-2 im-quote border-l-2 border-[#0a84ff] rounded-lg px-3 py-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-accent">Replying to {replyTo.senderName}</p>
-                    <p className="text-xs text-t2 truncate">{msgPreview(replyTo)}</p>
+                    <p className="text-xs font-semibold text-[#0a84ff]">Replying to {replyTo.senderName}</p>
+                    <p className="text-xs im-sub truncate">{msgPreview(replyTo)}</p>
                   </div>
-                  <button onClick={() => setReplyTo(null)} className="text-t3 hover:text-t1 text-lg leading-none px-1">×</button>
+                  <button onClick={() => setReplyTo(null)} className="im-sub hover:opacity-70 text-lg leading-none px-1">×</button>
                 </div>
               </div>
             )}
@@ -724,7 +717,7 @@ function ChatInner() {
             {/* Input bar */}
             <form
               onSubmit={handleSend}
-              className={`flex-shrink-0 px-4 sm:px-5 py-3 bg-surface flex items-center gap-2 relative ${replyTo ? '' : 'border-t border-line'}`}
+              className={`flex-shrink-0 px-4 sm:px-5 py-3 im-chrome flex items-center gap-2 relative ${replyTo ? '' : 'border-t'}`}
             >
               <input
                 ref={fileInputRef}
@@ -790,12 +783,12 @@ function ChatInner() {
                 value={input}
                 onChange={handleInputChange}
                 placeholder="Message…"
-                className="flex-1 bg-muted border border-line rounded-xl px-4 py-2.5 text-sm text-t1 placeholder:text-t3 focus:outline-none focus:border-accent transition"
+                className="flex-1 im-field rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#0a84ff] transition"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || sending}
-                className="w-10 h-10 rounded-xl bg-accent text-white flex items-center justify-center disabled:opacity-40 hover:bg-accent/90 transition active:scale-95 flex-shrink-0"
+                className="w-10 h-10 rounded-full im-send flex items-center justify-center disabled:opacity-40 transition active:scale-95 flex-shrink-0"
               >
                 <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 -rotate-45">
                   <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
