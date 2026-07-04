@@ -337,3 +337,5 @@ body {
 .im-send:hover:not(:disabled) { background: #0974e0; }
 .im-card { background: var(--im-card); border-color: var(--im-hairline); }
 .im-quote { background: var(--im-quote); }
+
+/* (end iMessage Air theme) */
