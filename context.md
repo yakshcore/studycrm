@@ -248,6 +248,8 @@ Tailwind CSS v4 with custom design tokens defined in global CSS (not `tailwind.c
 | `text-t3` | Tertiary / placeholder text |
 | `bg-accent` | Brand accent color |
 
+The same token vocabulary is shared by the student portal, where the tokens are backed by theme-switchable CSS variables (see Student Portal → Theming).
+
 ### Provider Hierarchy
 
 ```
@@ -285,6 +287,16 @@ Shape: `{ user: StudentUser | null, token: string | null, studentId: string | nu
 ### Axios Instance (`lib/api.ts`)
 
 Same pattern as CRM but reads `student_token` from localStorage.
+
+### Theming (`context/ThemeContext.tsx`)
+
+The student portal has a light/dark theme switcher (the CRM does not):
+
+- **Light is the default theme**; dark is secondary. Preference persisted in `localStorage` under `student-theme`.
+- Dark mode is applied by toggling the `dark` class on `<html>` (`:root.dark` overrides the CSS variables).
+- Design language is **glassmorphism**: `globals.css` defines `.glass`, `.glass-card`, `.glass-nav` (frosted backdrop-blur surfaces), `.glow-accent` / `.glow-accent-sm` glows, `.nav-active-glow`, and three animated background orbs (`.animate-orb-a/b/c`) driven by `--orb-1/2/3` variables.
+- Light palette: blue-white canvas (`#f0f4ff`), white surfaces, navy text, `#2563eb` accent. Dark palette: near-black (`#111318`) backgrounds with `#4f8ef7` accent.
+- PWA `themeColor` in `layout.tsx` viewport is `#2563eb`.
 
 ### Key Pages
 

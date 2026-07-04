@@ -33,6 +33,7 @@ StudyCRM is a study-abroad management platform that tracks students from first i
 - **Socket.IO** — real-time notifications and live chat on the same Express instance; no separate websocket server
 - **Zustand + localStorage** — lightweight client-side auth state without a session server
 - **Tailwind CSS v4** — custom design token system (`bg-base`, `bg-surface`, `text-t1`, etc.) for consistent theming across both frontends
+- **Student portal theming** — light-first glassmorphism design (frosted glass surfaces, blue accents, animated background orbs) with an optional dark mode persisted per user
 
 ## Stack at a Glance
 

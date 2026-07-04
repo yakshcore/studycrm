@@ -93,12 +93,10 @@ export function AppShell({ children, title }: Props) {
   const { theme, toggle }   = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // ── Notifications ─────────────────────────────────────────────────────────
   const [unreadCount, setUnreadCount] = useState(0);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    // Fetch unread count on mount
     api.get<Notification[]>('/notifications?limit=50')
       .then(r => setUnreadCount(r.data.filter(n => !n.read).length))
       .catch(() => {});
@@ -112,7 +110,6 @@ export function AppShell({ children, title }: Props) {
     socket.on('notification', () => setUnreadCount(c => c + 1));
     return () => { socket.disconnect(); };
   }, [user]);
-  // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const token = localStorage.getItem('student_token');
@@ -127,9 +124,9 @@ export function AppShell({ children, title }: Props) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Brand */}
-      <div className="px-5 py-5 border-b border-line">
+      <div className="px-5 py-5 border-b border-[var(--glass-border)]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-accent/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-accent/40 to-accent/10 border border-accent/30 flex items-center justify-center flex-shrink-0 glow-accent-sm">
             <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-accent" stroke="currentColor" strokeWidth="2">
               <path d="M12 2L2 7l10 5 10-5-10-5z"/>
               <path d="M2 17l10 5 10-5"/>
@@ -137,14 +134,14 @@ export function AppShell({ children, title }: Props) {
             </svg>
           </div>
           <div>
-            <p className="font-bold text-base text-t1 leading-tight">StudyPortal</p>
-            <p className="text-xs text-t3">Student Dashboard</p>
+            <p className="font-bold text-base text-t1 leading-tight tracking-tight">StudyPortal</p>
+            <p className="text-[11px] text-t3 font-medium tracking-wide uppercase">Student Dashboard</p>
           </div>
         </div>
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {NAV_ITEMS.map(item => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
@@ -152,51 +149,62 @@ export function AppShell({ children, title }: Props) {
               key={item.href}
               href={item.href}
               onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? 'bg-accent/15 text-accent'
-                  : 'text-t2 hover:text-t1 hover:bg-muted'
+                  ? 'bg-accent/15 text-accent border border-accent/20 shadow-[0_0_20px_rgba(56,189,248,0.12)]'
+                  : 'text-t2 hover:text-t1 hover:bg-white/5 border border-transparent'
               }`}
             >
-              <span className={isActive ? 'text-accent' : 'text-t3'}>{item.icon}</span>
+              <span className={`transition-colors ${isActive ? 'text-accent drop-shadow-[0_0_6px_var(--color-accent)]' : 'text-t3'}`}>
+                {item.icon}
+              </span>
               {item.label}
+              {isActive && (
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_6px_var(--color-accent)]" />
+              )}
             </Link>
           );
         })}
 
-        <div className="pt-2 border-t border-line mt-2 space-y-1">
+        <div className="pt-2 border-t border-[var(--glass-border)] mt-2 space-y-0.5">
           <Link
             href="/notifications"
             onClick={() => { setMobileMenuOpen(false); setUnreadCount(0); }}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              pathname === '/notifications' ? 'bg-accent/15 text-accent' : 'text-t2 hover:text-t1 hover:bg-muted'
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              pathname === '/notifications'
+                ? 'bg-accent/15 text-accent border border-accent/20 shadow-[0_0_20px_rgba(56,189,248,0.12)]'
+                : 'text-t2 hover:text-t1 hover:bg-white/5 border border-transparent'
             }`}
           >
             <div className="relative flex-shrink-0">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-t3">
+              <svg viewBox="0 0 24 24" fill="currentColor" className={`w-5 h-5 ${pathname === '/notifications' ? 'text-accent' : 'text-t3'}`}>
                 <path d="M5.85 3.5a.75.75 0 00-1.117-1 9.719 9.719 0 00-2.348 4.876.75.75 0 001.479.248A8.219 8.219 0 015.85 3.5zM19.267 2.5a.75.75 0 10-1.118 1 8.22 8.22 0 011.987 4.124.75.75 0 001.48-.248A9.72 9.72 0 0019.266 2.5z"/>
                 <path fillRule="evenodd" d="M12 2.25A6.75 6.75 0 005.25 9v.75a8.217 8.217 0 01-2.119 5.52.75.75 0 00.298 1.206c1.544.57 3.16.99 4.831 1.243a3.75 3.75 0 107.48 0 24.583 24.583 0 004.83-1.244.75.75 0 00.298-1.205 8.217 8.217 0 01-2.118-5.52V9A6.75 6.75 0 0012 2.25zM9.75 18c0-.034 0-.067.002-.1a25.05 25.05 0 004.496 0l.002.1a2.25 2.25 0 11-4.5 0z" clipRule="evenodd"/>
               </svg>
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent text-white text-[9px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent shadow-[0_0_8px_var(--color-accent)] text-[var(--color-base)] text-[9px] font-bold flex items-center justify-center">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </div>
             <span>Notifications</span>
             {unreadCount > 0 && (
-              <span className="ml-auto text-xs bg-accent/15 text-accent px-1.5 py-0.5 rounded-full font-medium">{unreadCount}</span>
+              <span className="ml-auto text-[10px] bg-accent/20 text-accent px-1.5 py-0.5 rounded-full font-bold border border-accent/30">
+                {unreadCount}
+              </span>
             )}
           </Link>
 
           <Link
             href="/profile"
             onClick={() => setMobileMenuOpen(false)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              pathname === '/profile' ? 'bg-accent/15 text-accent' : 'text-t2 hover:text-t1 hover:bg-muted'
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              pathname === '/profile'
+                ? 'bg-accent/15 text-accent border border-accent/20 shadow-[0_0_20px_rgba(56,189,248,0.12)]'
+                : 'text-t2 hover:text-t1 hover:bg-white/5 border border-transparent'
             }`}
           >
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-t3">
+            <svg viewBox="0 0 24 24" fill="currentColor" className={`w-5 h-5 ${pathname === '/profile' ? 'text-accent' : 'text-t3'}`}>
               <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd"/>
             </svg>
             Profile
@@ -205,38 +213,39 @@ export function AppShell({ children, title }: Props) {
       </nav>
 
       {/* Bottom */}
-      <div className="px-3 py-4 border-t border-line space-y-2">
+      <div className="px-3 py-4 border-t border-[var(--glass-border)] space-y-2">
         <button
           onClick={toggle}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-t2 hover:text-t1 hover:bg-muted transition-all"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-t2 hover:text-t1 hover:bg-white/5 transition-all duration-200 border border-transparent hover:border-[var(--glass-border)]"
         >
-          {theme === 'dark' ? (
-            <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-t3">
-              <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd"/>
-            </svg>
-          ) : (
+          {theme === 'light' ? (
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-t3">
               <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
             </svg>
+          ) : (
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-t3">
+              <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd"/>
+            </svg>
           )}
-          {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
         </button>
 
         {user && (
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-muted">
-            <div className="w-8 h-8 rounded-full bg-accent/20 text-accent text-sm font-bold flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] backdrop-blur-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/50 to-accent/20 border border-accent/30 text-accent text-sm font-bold flex items-center justify-center flex-shrink-0 shadow-[0_0_10px_var(--glow-soft)]">
               {getInitials(user.name)}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-t1 truncate">{user.name}</p>
-              <p className="text-xs text-t3">Student</p>
+              <p className="text-sm font-semibold text-t1 truncate">{user.name}</p>
+              <p className="text-[11px] text-t3 font-medium">Student</p>
             </div>
+            <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)] flex-shrink-0" />
           </div>
         )}
 
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-all"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400/80 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all duration-200"
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
             <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd"/>
@@ -248,74 +257,108 @@ export function AppShell({ children, title }: Props) {
   );
 
   return (
-    <div className="flex h-screen bg-base overflow-hidden">
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-60 flex-col bg-surface border-r border-line flex-shrink-0">
+    <div className="flex h-screen bg-base overflow-hidden relative">
+
+      {/* ── Floating background orbs ────────────────────────────── */}
+      <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+        <div
+          className="animate-orb-a absolute -top-40 -left-24 w-[560px] h-[560px] rounded-full blur-[120px]"
+          style={{ background: 'var(--orb-1)' }}
+        />
+        <div
+          className="animate-orb-b absolute top-1/2 -right-32 w-[420px] h-[420px] rounded-full blur-[100px]"
+          style={{ background: 'var(--orb-2)' }}
+        />
+        <div
+          className="animate-orb-c absolute -bottom-24 left-1/3 w-[380px] h-[380px] rounded-full blur-[90px]"
+          style={{ background: 'var(--orb-3)' }}
+        />
+      </div>
+
+      {/* ── Desktop sidebar ─────────────────────────────────────── */}
+      <aside className="hidden lg:flex w-60 flex-col glass flex-shrink-0 relative z-10" style={{ borderRight: '1px solid var(--glass-border)', background: 'var(--glass-bg)' }}>
         <SidebarContent />
       </aside>
 
       {/* Mobile drawer overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       {/* Mobile drawer */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-line flex flex-col lg:hidden transition-transform duration-300 ${
-        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col lg:hidden transition-transform duration-300 glass`}
+        style={{ borderRight: '1px solid var(--glass-border)', background: 'var(--glass-bg)', transform: mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)' }}
+      >
         <SidebarContent />
       </aside>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* ── Main area ───────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
+
         {/* Mobile top bar */}
-        <div className="lg:hidden flex items-center gap-3 px-4 py-3 bg-surface border-b border-line">
+        <div className="lg:hidden flex items-center gap-3 px-4 py-3 glass-nav border-b" style={{ borderColor: 'var(--glass-border)' }}>
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="p-2 rounded-lg text-t2 hover:bg-muted"
+            className="p-2 rounded-xl text-t2 hover:bg-white/10 hover:text-t1 transition-all border border-transparent hover:border-[var(--glass-border)]"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
               <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
             </svg>
           </button>
-          <span className="font-bold text-t1">{title ?? 'StudyPortal'}</span>
+
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-accent/25 border border-accent/30 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5 text-accent" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <span className="font-bold text-t1 text-sm">{title ?? 'StudyPortal'}</span>
+          </div>
+
           <div className="flex-1" />
+
           <Link
             href="/notifications"
             onClick={() => setUnreadCount(0)}
-            className="relative p-2 rounded-lg text-t2 hover:bg-muted"
+            className="relative p-2 rounded-xl text-t2 hover:bg-white/10 hover:text-t1 transition-all"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
               <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
             </svg>
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-accent text-white text-[9px] font-bold flex items-center justify-center">
+              <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-accent shadow-[0_0_8px_var(--color-accent)] text-[var(--color-base)] text-[9px] font-bold flex items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </Link>
-          <Link href="/profile" className="w-8 h-8 rounded-full bg-accent/20 text-accent text-sm font-bold flex items-center justify-center">
+
+          <Link
+            href="/profile"
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/50 to-accent/20 border border-accent/30 text-accent text-sm font-bold flex items-center justify-center shadow-[0_0_10px_var(--glow-soft)]"
+          >
             {user ? getInitials(user.name) : 'U'}
           </Link>
         </div>
 
-        {/* Bottom nav (mobile only) */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-surface border-t border-line flex items-center">
+        {/* Mobile bottom nav */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 glass-nav border-t flex items-center" style={{ borderColor: 'var(--glass-border)' }}>
           {NAV_ITEMS.slice(0, 5).map(item => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${
+                className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition-all duration-200 ${
                   isActive ? 'text-accent' : 'text-t3'
                 }`}
               >
-                <span>{item.icon}</span>
+                <span className={isActive ? 'drop-shadow-[0_0_6px_var(--color-accent)]' : ''}>{item.icon}</span>
                 <span>{item.label}</span>
+                {isActive && <span className="w-1 h-1 rounded-full bg-accent shadow-[0_0_4px_var(--color-accent)]" />}
               </Link>
             );
           })}
