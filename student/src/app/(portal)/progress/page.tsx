@@ -35,6 +35,8 @@ export default function ProgressPage() {
   }, [studentId]);
 
   const currentTips = student ? (STAGE_TIPS[student.stage] ?? []) : [];
+  const scores = student?.scores ?? {};
+  const prefs  = student?.preferences ?? {};
 
   return (
     <AppShell title="My Progress">
@@ -78,21 +80,21 @@ export default function ProgressPage() {
                 <Detail label="Email"       value={student.personal.email} />
                 <Detail label="Phone"       value={student.personal.phone} />
                 <Detail label="Nationality" value={student.personal.nationality} />
-                <Detail label="Intake"      value={student.preferences.intake} />
-                <Detail label="Countries"   value={student.preferences.countries.join(', ')} />
+                <Detail label="Intake"      value={prefs.intake} />
+                <Detail label="Countries"   value={prefs.countries?.join(', ')} />
               </div>
             </div>
 
             {/* Scores */}
-            {(student.scores.ielts || student.scores.toefl || student.scores.gre || student.scores.gmat) && (
+            {(scores.ielts || scores.toefl || scores.gre || scores.gmat || scores.sat) && (
               <div className="bg-surface border border-line rounded-2xl p-5 animate-fade-in">
                 <h3 className="font-semibold text-t1 text-sm mb-4">Test Scores</h3>
                 <div className="flex flex-wrap gap-3">
-                  {student.scores.ielts && <ScoreBadge label="IELTS" value={String(student.scores.ielts)} />}
-                  {student.scores.toefl && <ScoreBadge label="TOEFL" value={String(student.scores.toefl)} />}
-                  {student.scores.gre   && <ScoreBadge label="GRE"   value={String(student.scores.gre)} />}
-                  {student.scores.gmat  && <ScoreBadge label="GMAT"  value={String(student.scores.gmat)} />}
-                  {student.scores.sat   && <ScoreBadge label="SAT"   value={String(student.scores.sat)} />}
+                  {scores.ielts && <ScoreBadge label="IELTS" value={String(scores.ielts)} />}
+                  {scores.toefl && <ScoreBadge label="TOEFL" value={String(scores.toefl)} />}
+                  {scores.gre   && <ScoreBadge label="GRE"   value={String(scores.gre)} />}
+                  {scores.gmat  && <ScoreBadge label="GMAT"  value={String(scores.gmat)} />}
+                  {scores.sat   && <ScoreBadge label="SAT"   value={String(scores.sat)} />}
                 </div>
               </div>
             )}

@@ -54,12 +54,12 @@ export default function ProfilePage() {
         setGender(s.personal.gender ?? '');
         setNationality(s.personal.nationality ?? '');
         setAddress(s.personal.address ?? '');
-        setHighestLevel(s.education.highestLevel ?? '');
-        setCollege(s.education.graduationCollege ?? '');
-        setScore(s.education.graduationScore?.toString() ?? '');
-        setCountries(s.preferences.countries.join(', '));
-        setCourses(s.preferences.courses.join(', '));
-        setIntake(s.preferences.intake ?? '');
+        setHighestLevel(s.education?.highestLevel ?? '');
+        setCollege(s.education?.graduationCollege ?? '');
+        setScore(s.education?.graduationScore?.toString() ?? '');
+        setCountries(s.preferences?.countries?.join(', ') ?? '');
+        setCourses(s.preferences?.courses?.join(', ') ?? '');
+        setIntake(s.preferences?.intake ?? '');
       })
       .catch(() => toast('Failed to load profile', 'error'))
       .finally(() => setLoading(false));
@@ -279,15 +279,15 @@ export default function ProfilePage() {
         )}
 
         {/* Read-only visa / passport */}
-        {!loading && student && tab === 'Personal' && student.passport.number && (
+        {!loading && student && tab === 'Personal' && student.passport?.number && (
           <div className="bg-surface border border-line rounded-2xl p-5">
             <h3 className="font-semibold text-t1 text-sm mb-4">Passport Info</h3>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-xs text-t3 uppercase tracking-wider">Number</p>
-                <p className="text-t1 mt-0.5">{student.passport.number}</p>
+                <p className="text-t1 mt-0.5">{student.passport?.number}</p>
               </div>
-              {student.passport.expiry && (
+              {student.passport?.expiry && (
                 <div>
                   <p className="text-xs text-t3 uppercase tracking-wider">Expires</p>
                   <p className="text-t1 mt-0.5">{new Date(student.passport.expiry).toLocaleDateString()}</p>

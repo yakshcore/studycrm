@@ -54,14 +54,16 @@ export interface Student {
     name: string; email: string; phone: string;
     dob?: string; gender?: string; nationality?: string; address?: string;
   };
-  education: {
+  /* These sub-objects can be absent on records created via self-registration
+     or lead conversion — always access them defensively. */
+  education?: {
     highestLevel?: string; board10?: string; percentage10?: number;
     board12?: string; percentage12?: number;
     graduationCollege?: string; graduationScore?: number;
   };
-  scores: { ielts?: number; toefl?: number; gre?: number; gmat?: number; sat?: number; };
-  passport: { number?: string; expiry?: string; issued?: string; };
-  preferences: { countries: string[]; universities: string[]; courses: string[]; intake?: string; };
+  scores?: { ielts?: number; toefl?: number; gre?: number; gmat?: number; sat?: number; };
+  passport?: { number?: string; expiry?: string; issued?: string; };
+  preferences?: { countries?: string[]; universities?: string[]; courses?: string[]; intake?: string; };
   notes?: string;
   createdAt: string;
   updatedAt: string;
