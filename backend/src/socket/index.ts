@@ -1,12 +1,25 @@
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { setIo } from './emitter';
+import { setIo, getIo } from './emitter';
+import User from '../models/User';
 
 /** userId → live socket ids (a user can have several tabs open) */
 const onlineUsers = new Map<string, Set<string>>();
 
 export function isUserOnline(userId: string): boolean {
   return (onlineUsers.get(userId)?.size ?? 0) > 0;
+}
+
+/** True when any of the user's sockets has joined the given room (e.g. an open conversation). */
+export function isUserViewing(userId: string, roomId: string): boolean {
+  const io = getIo();
+  if (!io) return false;
+  const socketIds = onlineUsers.get(userId);
+  if (!socketIds) return false;
+  const room = io.sockets.adapter.rooms.get(roomId);
+  if (!room) return false;
+  for (const sid of socketIds) if (room.has(sid)) return true;
+  return false;
 }
 
 export function setupSocket(io: Server) {
@@ -23,6 +36,7 @@ export function setupSocket(io: Server) {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { id: string };
         userId = decoded.id;
+        socket.data.userId = userId;
         socket.join(`user:${userId}`);
 
         // Presence: track and broadcast
@@ -67,7 +81,9 @@ export function setupSocket(io: Server) {
           sockets.delete(socket.id);
           if (sockets.size === 0) {
             onlineUsers.delete(userId);
-            io.emit('presence', { userId, online: false });
+            const lastSeenAt = new Date();
+            io.emit('presence', { userId, online: false, lastSeenAt: lastSeenAt.toISOString() });
+            User.findByIdAndUpdate(userId, { lastSeenAt }).exec().catch(() => {});
           }
         }
       }

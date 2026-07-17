@@ -13,6 +13,7 @@ export interface IUser extends Document {
   studentId?: import('mongoose').Types.ObjectId;
   universityName?: string;   // set for role === 'university' — scopes their access
   isActive: boolean;
+  lastSeenAt?: Date;         // updated when the user's last socket disconnects
   createdAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
 }
@@ -26,7 +27,8 @@ const UserSchema = new Schema<IUser>({
   phone:          { type: String },
   studentId:      { type: Schema.Types.ObjectId, ref: 'Student' },
   universityName: { type: String },   // required when role === 'university'
-  isActive:  { type: Boolean, default: true },
+  isActive:   { type: Boolean, default: true },
+  lastSeenAt: { type: Date },
 }, { timestamps: true });
 
 UserSchema.pre('save', async function (next) {

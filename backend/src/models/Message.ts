@@ -9,6 +9,11 @@ export interface IReplyTo {
   preview: string;
 }
 
+export interface IReaction {
+  userId: mongoose.Types.ObjectId;
+  emoji: string;
+}
+
 export interface IMessage extends Document {
   conversationId: mongoose.Types.ObjectId;
   senderId: mongoose.Types.ObjectId;
@@ -22,9 +27,16 @@ export interface IMessage extends Document {
    * - document_request: { items: [{ requestId, type, label?, note?, status }] }
    * - form_request:     { title, fields: [{ id, label, required? }], answered?, responseId? }
    * - form_response:    { formMessageId, title, answers: [{ id, label, value }] }
+   * - file (voice):     { voice: true, duration?: number }
    */
   meta?: Record<string, unknown>;
   replyTo?: IReplyTo;
+  reactions: IReaction[];
+  editedAt?: Date;
+  /** hidden only for these users ("delete for me") */
+  deletedFor: mongoose.Types.ObjectId[];
+  /** tombstone visible to everyone ("delete for everyone") */
+  deletedForEveryone: boolean;
   readBy: mongoose.Types.ObjectId[];
   createdAt: Date;
 }
@@ -45,6 +57,10 @@ const MessageSchema = new Schema<IMessage>({
   fileName:       String,
   meta:           { type: Schema.Types.Mixed },
   replyTo:        { type: ReplyToSchema },
+  reactions:      { type: [{ userId: { type: Schema.Types.ObjectId, ref: 'User', required: true }, emoji: { type: String, required: true }, _id: false }], default: [] },
+  editedAt:       Date,
+  deletedFor:     [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  deletedForEveryone: { type: Boolean, default: false },
   readBy:         [{ type: Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 

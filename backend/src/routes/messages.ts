@@ -4,8 +4,10 @@ import multer from 'multer';
 import mongoose from 'mongoose';
 import Message from '../models/Message';
 import Conversation from '../models/Conversation';
+import User from '../models/User';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { getIo } from '../socket/emitter';
+import { isUserViewing } from '../socket';
 import { notify } from '../utils/notify';
 
 const router = Router();
@@ -35,8 +37,24 @@ router.get('/conversations', authenticate, async (req: AuthRequest, res: Respons
     const conversations = await Conversation.find({ participants: req.user!.id })
       .populate('participants', 'name email avatar role')
       .populate('studentId', 'personal')
-      .sort('-updatedAt');
-    res.json(conversations);
+      .sort('-updatedAt')
+      .lean();
+
+    // Per-conversation unread counts (messages from others I haven't read)
+    const uid = new mongoose.Types.ObjectId(req.user!.id);
+    const counts = await Message.aggregate([
+      { $match: {
+        conversationId: { $in: conversations.map(c => c._id) },
+        senderId: { $ne: uid },
+        readBy: { $ne: uid },
+        deletedForEveryone: { $ne: true },
+        deletedFor: { $ne: uid },
+      } },
+      { $group: { _id: '$conversationId', n: { $sum: 1 } } },
+    ]);
+    const unreadById = new Map(counts.map(c => [c._id.toString(), c.n as number]));
+
+    res.json(conversations.map(c => ({ ...c, unread: unreadById.get(c._id.toString()) ?? 0 })));
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err });
   }
@@ -108,19 +126,20 @@ router.post('/send', authenticate, async (req: AuthRequest, res: Response): Prom
     const io = getIo();
     if (io) io.to(conversationId).emit('receive_message', message.toObject());
 
-    // Notify the other participants (fire-and-forget)
+    // Notify the other participants — but not anyone actively viewing this chat
     const conv = await Conversation.findById(conversationId);
     if (conv) {
       const others = conv.participants
         .map(p => p.toString())
-        .filter(p => p !== req.user!.id);
+        .filter(p => p !== req.user!.id && !isUserViewing(p, conversationId));
       const notifBody = preview.length > 120 ? preview.slice(0, 117) + '…' : preview;
       const isStudent = req.user!.role === 'student';
-      notify(others, {
+      if (others.length) notify(others, {
         type:  'message',
         title: `💬 ${req.user!.name}`,
         body:  notifBody,
-        link:  isStudent ? undefined : '/chat',
+        // staff land on the exact conversation; students only have their own chat
+        link:  isStudent ? `/chat?with=${req.user!.id}` : '/chat',
       }).catch(() => {});
     }
 
@@ -139,7 +158,7 @@ router.post('/send', authenticate, async (req: AuthRequest, res: Response): Prom
 router.post('/send-file', authenticate, upload.single('file'), async (req: AuthRequest, res: Response): Promise<void> => {
   if (!req.file) { res.status(400).json({ message: 'No file uploaded' }); return; }
 
-  const { conversationId, studentId } = req.body as Record<string, string>;
+  const { conversationId, studentId, voice, duration, replyTo } = req.body as Record<string, string>;
   if (!conversationId) { res.status(400).json({ message: 'conversationId is required' }); return; }
 
   const convCheck = await Conversation.findById(conversationId).select('archived');
@@ -148,6 +167,10 @@ router.post('/send-file', authenticate, upload.single('file'), async (req: AuthR
 
   const fileUrl  = `/uploads/${req.file.filename}`;
   const fileName = req.file.originalname;
+  const isVoice  = voice === 'true';
+
+  let parsedReply: { messageId: string; senderName: string; preview: string } | undefined;
+  if (replyTo) { try { parsedReply = JSON.parse(replyTo); } catch { /* ignore malformed reply payloads */ } }
 
   try {
     // Create chat message
@@ -158,16 +181,18 @@ router.post('/send-file', authenticate, upload.single('file'), async (req: AuthR
       type:       'file',
       fileUrl,
       fileName,
+      meta: isVoice ? { voice: true, duration: duration ? Number(duration) : undefined } : undefined,
+      replyTo: parsedReply,
       readBy: [req.user!.id],
     });
 
     await Conversation.findByIdAndUpdate(conversationId, {
-      lastMessage: { text: `📎 ${fileName}`, senderId: req.user!.id, createdAt: new Date() },
+      lastMessage: { text: isVoice ? '🎤 Voice message' : `📎 ${fileName}`, senderId: req.user!.id, createdAt: new Date() },
       updatedAt: new Date(),
     });
 
     // If a studentId was provided (student uploading their own doc), also create a Document record
-    if (studentId) {
+    if (studentId && !isVoice) {
       const DocumentModel = (await import('../models/Document')).default;
       const now     = new Date();
       const version = {
@@ -198,20 +223,25 @@ router.post('/send-file', authenticate, upload.single('file'), async (req: AuthR
     const io = getIo();
     if (io) io.to(conversationId).emit('receive_message', message.toObject());
 
-    // Notify the other participants in the conversation
+    // Notify the other participants — but not anyone actively viewing this chat
     const conv = await Conversation.findById(conversationId);
     if (conv) {
       const others = conv.participants
         .map(p => p.toString())
-        .filter(p => p !== req.user!.id);
+        .filter(p => p !== req.user!.id && !isUserViewing(p, conversationId));
 
       const isStudent = req.user!.role === 'student';
-      await notify(others, {
+      if (others.length) await notify(others, {
         type:  'document',
-        title: isStudent ? '📎 File Shared by Student' : '📎 File from Counsellor',
-        body:  isStudent
-          ? `${req.user!.name} shared a file in chat: ${fileName}`
-          : `Your counsellor shared a file: ${fileName}`,
+        title: isVoice
+          ? `🎤 Voice message from ${req.user!.name}`
+          : isStudent ? '📎 File Shared by Student' : '📎 File from Counsellor',
+        body:  isVoice
+          ? 'Tap to listen in chat'
+          : isStudent
+            ? `${req.user!.name} shared a file in chat: ${fileName}`
+            : `Your counsellor shared a file: ${fileName}`,
+        link:  isStudent ? `/chat?with=${req.user!.id}` : '/chat',
       });
     }
 
@@ -273,12 +303,13 @@ router.post('/form-response', authenticate, async (req: AuthRequest, res: Respon
 
     const conv = await Conversation.findById(conversationId);
     if (conv) {
-      const others = conv.participants.map(p => p.toString()).filter(p => p !== req.user!.id);
-      notify(others, {
+      const others = conv.participants.map(p => p.toString())
+        .filter(p => p !== req.user!.id && !isUserViewing(p, conversationId));
+      if (others.length) notify(others, {
         type:  'message',
         title: `📝 ${req.user!.name} submitted details`,
         body:  formMeta.title || 'Form response received',
-        link:  '/chat',
+        link:  `/chat?with=${req.user!.id}`,
       }).catch(() => {});
     }
 
@@ -307,14 +338,152 @@ router.post('/:conversationId/read', authenticate, async (req: AuthRequest, res:
   }
 });
 
-// ── GET messages in a conversation ───────────────────────────────────────────
+// ── Message actions ───────────────────────────────────────────────────────────
 
-router.get('/:conversationId', authenticate, async (req, res: Response) => {
+/** Authorization guard: is `userId` a participant of the conversation? */
+async function isParticipant(conversationId: mongoose.Types.ObjectId | string, userId: string): Promise<boolean> {
+  const conv = await Conversation.findById(conversationId).select('participants');
+  return !!conv && conv.participants.some(p => p.toString() === userId);
+}
+
+/** Strip content from "deleted for everyone" tombstones before sending to clients */
+function sanitize(msg: InstanceType<typeof Message>): Record<string, unknown> {
+  const obj = msg.toObject() as unknown as Record<string, unknown>;
+  if (obj.deletedForEveryone) {
+    obj.text = ''; delete obj.fileUrl; delete obj.fileName;
+    delete obj.meta; delete obj.replyTo; obj.reactions = [];
+  }
+  return obj;
+}
+
+/** GET /api/messages/last-seen/:userId — presence detail for chat headers */
+router.get('/last-seen/:userId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const messages = await Message.find({ conversationId: req.params.conversationId })
+    const { isUserOnline } = await import('../socket');
+    const user = await User.findById(req.params.userId).select('lastSeenAt');
+    res.json({ online: isUserOnline(req.params.userId), lastSeenAt: user?.lastSeenAt ?? null });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err });
+  }
+});
+
+/** GET /api/messages/search/:conversationId?q= — text search within a conversation */
+router.get('/search/:conversationId', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const q = (req.query.q as string | undefined)?.trim();
+  if (!q) { res.json([]); return; }
+  try {
+    if (!(await isParticipant(req.params.conversationId, req.user!.id))) {
+      res.status(403).json({ message: 'Not a participant of this conversation' }); return;
+    }
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const matches = await Message.find({
+      conversationId: req.params.conversationId,
+      text: { $regex: escaped, $options: 'i' },
+      deletedForEveryone: { $ne: true },
+      deletedFor: { $ne: req.user!.id },
+    }).sort('-createdAt').limit(50);
+    res.json(matches);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err });
+  }
+});
+
+/** PUT /api/messages/message/:id — edit own text message */
+router.put('/message/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const { text } = req.body as { text?: string };
+  if (!text?.trim()) { res.status(400).json({ message: 'text is required' }); return; }
+  try {
+    const msg = await Message.findById(req.params.id);
+    if (!msg) { res.status(404).json({ message: 'Message not found' }); return; }
+    if (msg.senderId.toString() !== req.user!.id) { res.status(403).json({ message: 'You can only edit your own messages' }); return; }
+    if (msg.type !== 'text' || msg.deletedForEveryone) { res.status(400).json({ message: 'This message cannot be edited' }); return; }
+
+    msg.text = text.trim();
+    msg.editedAt = new Date();
+    await msg.save();
+
+    const io = getIo();
+    if (io) io.to(msg.conversationId.toString()).emit('message_updated', sanitize(msg));
+    res.json(sanitize(msg));
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err });
+  }
+});
+
+/** DELETE /api/messages/message/:id?scope=me|everyone */
+router.delete('/message/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const scope = req.query.scope === 'everyone' ? 'everyone' : 'me';
+  try {
+    const msg = await Message.findById(req.params.id);
+    if (!msg) { res.status(404).json({ message: 'Message not found' }); return; }
+
+    if (scope === 'everyone') {
+      if (msg.senderId.toString() !== req.user!.id) {
+        res.status(403).json({ message: 'You can only delete your own messages for everyone' }); return;
+      }
+      msg.deletedForEveryone = true;
+      await msg.save();
+      const io = getIo();
+      if (io) io.to(msg.conversationId.toString()).emit('message_updated', sanitize(msg));
+    } else {
+      await Message.findByIdAndUpdate(msg._id, { $addToSet: { deletedFor: req.user!.id } });
+    }
+    res.json({ ok: true, scope });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err });
+  }
+});
+
+/** POST /api/messages/message/:id/react — toggle an emoji reaction */
+router.post('/message/:id/react', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+  const { emoji } = req.body as { emoji?: string };
+  if (!emoji || emoji.length > 8) { res.status(400).json({ message: 'emoji is required' }); return; }
+  try {
+    const msg = await Message.findById(req.params.id);
+    if (!msg || msg.deletedForEveryone) { res.status(404).json({ message: 'Message not found' }); return; }
+    if (!(await isParticipant(msg.conversationId, req.user!.id))) {
+      res.status(403).json({ message: 'Not a participant of this conversation' }); return;
+    }
+
+    const mine = msg.reactions.find(r => r.userId.toString() === req.user!.id);
+    let next = msg.reactions.filter(r => r.userId.toString() !== req.user!.id);
+    if (!(mine && mine.emoji === emoji)) {
+      next = [...next, { userId: new mongoose.Types.ObjectId(req.user!.id), emoji } as (typeof msg.reactions)[number]];
+    }
+    msg.set('reactions', next);
+    await msg.save();
+
+    const io = getIo();
+    if (io) io.to(msg.conversationId.toString()).emit('message_updated', sanitize(msg));
+    res.json(sanitize(msg));
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err });
+  }
+});
+
+// ── GET messages in a conversation (paginated) ────────────────────────────────
+// ?limit=50&before=<ISO date> — returns ascending; page back with `before`.
+
+router.get('/:conversationId', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!(await isParticipant(req.params.conversationId, req.user!.id))) {
+      res.status(403).json({ message: 'Not a participant of this conversation' }); return;
+    }
+    const limit  = Math.min(Number(req.query.limit) || 200, 200);
+    const before = req.query.before ? new Date(req.query.before as string) : null;
+
+    const filter: Record<string, unknown> = {
+      conversationId: req.params.conversationId,
+      deletedFor: { $ne: req.user!.id },
+    };
+    if (before && !isNaN(before.getTime())) filter.createdAt = { $lt: before };
+
+    const page = await Message.find(filter)
       .populate('senderId', 'name avatar')
-      .sort('createdAt');
-    res.json(messages);
+      .sort('-createdAt')
+      .limit(limit);
+
+    res.json(page.reverse().map(m => sanitize(m)));
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err });
   }
